@@ -13,7 +13,8 @@
     "db:seed": "tsx scripts/db-setup.ts seed",
     "smoke": "tsx scripts/smoke.ts",
     "smoke:capture": "tsx scripts/smoke-capture.ts",
-    "split:preview": "tsx scripts/split-preview.ts"
+    "split:preview": "tsx scripts/split-preview.ts",
+    "split:check": "tsx scripts/split-coverage-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

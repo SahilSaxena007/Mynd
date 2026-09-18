@@ -6,19 +6,12 @@ import { parseArgs } from "node:util";
 import { closeDb } from "../lib/db/client";
 import { countModelCallsToday, sumModelCostToday } from "../lib/db/queries";
 import type { Capture } from "../lib/db/types";
-import { withModelRun, type CompleteResult } from "../lib/model";
+import { withModelRun } from "../lib/model";
+import { formatPreviewError } from "../lib/model/errors";
 import { estimateCost } from "../lib/model/cost";
 import { gather } from "../lib/organizer/stage0-gather";
-import { splitCapture, splitSchema, type SplitItem } from "../lib/organizer/stage1-split";
+import { splitCapture, splitSchema } from "../lib/organizer/stage1-split";
 import { splitPrompt } from "../lib/prompts/split";
-
-// Lexical diagnostic only: this does not prove semantic or atomic-item coverage.
-function wordCoverage(source: string, items: SplitItem[]): number {
-  const words = (text: string) => text.toLocaleLowerCase("en").match(/[\p{L}\p{N}]+/gu) ?? [];
-  const original = words(source);
-  const output = new Set(items.flatMap((item) => words(item.text)));
-  return original.length ? original.filter((word) => output.has(word)).length / original.length : 1;
-}
 
 async function preview() {
   const { values } = parseArgs({ options: {
@@ -43,7 +36,7 @@ async function preview() {
 
   const beforeCalls = await countModelCallsToday();
   const beforeCost = await sumModelCostToday();
-  const results: { capture: Capture; result?: CompleteResult<{ items: SplitItem[] }>; wordCoverage?: number }[] = [];
+  const results: { capture: Capture; result?: Awaited<ReturnType<typeof splitCapture>> }[] = [];
   const summary = { calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, estCostUsd: 0,
     todayCostUsd: beforeCost };
   let failed = false;
@@ -61,10 +54,14 @@ async function preview() {
       summary.outputTokens += result.usage.outputTokens;
       summary.cachedTokens += result.usage.cachedTokens;
       summary.estCostUsd += estimateCost(result.model, result.usage);
-      const coverage = wordCoverage(capture.body, result.data.items);
-      results.push({ capture, result, wordCoverage: coverage });
-      result.data.items.forEach((item, index) => console.log(`  ${index + 1}. [${item.topic}] ${item.text}`));
-      console.log(`  Word coverage: ${(coverage * 100).toFixed(1)}% (diagnostic, NOT the no-loss guarantee)`);
+      results.push({ capture, result });
+      result.data.items.forEach((item, index) => {
+        console.log(`  ${index + 1}. [${item.topic}]${item.unassigned ? " ⚠ UNASSIGNED (added by code)" : ""}`);
+        item.quotes.forEach((quote) => console.log(`    ${quote}`));
+      });
+      console.log(`  Rejected quotes: ${result.data.rejectedQuotes.length}; overlaps: ${result.data.overlaps}`);
+      console.log(`  Claimed by model: ${(result.data.claimedFraction * 100).toFixed(1)}%; `
+        + `${result.data.items.filter((item) => item.unassigned).length} unassigned items added.`);
     }
   } catch (error) {
     failed = true;
@@ -91,9 +88,7 @@ async function main() {
   try {
     await withModelRun(preview);
   } catch (error) {
-    // Provider errors can contain source text or credentials. Guard failures log their own limit.
-    const code = error && typeof error === "object" && "code" in error ? String(error.code) : "preview error";
-    console.error(`FAIL: Split preview stopped (${code}); no vault writes were made. Check arguments, configuration, and connectivity.`);
+    console.error(formatPreviewError(error));
     process.exitCode = 1;
   } finally {
     await closeDb();

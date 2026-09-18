@@ -543,3 +543,42 @@ never "correct" a transcription itself — that would be guessing, and guessing 
 information. Mitigation on the input side: add product and people names to Wispr's personal
 dictionary. The Dingerva/Dingbra pair (`917a2ef4-…`, `1946e6fd-…`) is kept as a real test case for
 3b's cross-capture pooling.
+
+---
+
+# 2026-09-18 — Slice 3a.1 verified
+
+## Build order (continued)
+
+### 2026-09-18 — B6 Slice 3a.1 is complete and verified; 3a is done
+`npm run split:check` passes all seven coverage cases with zero model calls. On real captures:
+the movie list became one `movies to watch` item and the shopping list one `things to buy` item,
+each with its framing sentence inside; the Walt capture split correctly into a day recap and a
+product idea with its framing kept. Zero rejected quotes across every run. Cost about $0.0012 per
+split — lower than 3a, because copying the user's words produces fewer output tokens than
+paraphrasing them.
+**Why it counts as done:** the two `unassigned` items that appeared ("What else do I need?",
+"Right, okay,") are the P7 guarantee working on real data, not a failure: the model skipped text
+and code restored it verbatim. Nothing was lost in any run.
+
+## Carried into 3b
+
+### 2026-09-18 — P10 Filler and questions-to-self attach to the item beside them — prompt change, not code
+**Why:** the model skips verbal filler ("Right, okay,") and rhetorical questions ("What else do I
+need?"). The guarantee restores them, but as standalone `unassigned` items — which in 3b would
+reach the Quick Calls queue as unfileable noise. Deciding which neighbour a fragment belongs to is
+a judgment, so it stays with the model (CP1); code keeps only the guarantee that nothing is lost.
+
+### 2026-09-18 — P11 Code lowercases topic labels
+**Why:** the model returned both `meeting with dingerva` and `meeting with Dingbra`. Labels are
+the organiser's own text, never the user's words, so normalising them is safe for code — and 3b
+relies on labels to notice that two captures are about the same thing. The spelling difference is
+a separate problem (O1) that only Stage 2's reading of context can resolve.
+
+### 2026-09-18 — P12 The split stays verbatim; trimming repetition and rewording belong to Stage 2 and the v2 tidy pass
+Restatements ("This is my movie list" after "a list of movies I've been wanting to watch") and
+wording that could be tightened are left intact by the split.
+**Why:** the split is provably lossless only because it copies the user's words exactly (P6,
+P7). Stage 2 writes the actual note and may rephrase and drop pure repetition, never adding
+(R3). Rewriting a note that already exists is the tidy pass deferred to v2 by D1. Raised by the
+human on 2026-09-18 as a known future refinement, not a v1 requirement.
