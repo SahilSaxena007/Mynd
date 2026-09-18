@@ -582,3 +582,92 @@ wording that could be tightened are left intact by the split.
 P7). Stage 2 writes the actual note and may rephrase and drop pure repetition, never adding
 (R3). Rewriting a note that already exists is the tidy pass deferred to v2 by D1. Raised by the
 human on 2026-09-18 as a known future refinement, not a v1 requirement.
+
+---
+
+# 2026-09-18 — Slice 3b planning (route, write, guarantees)
+
+Spec: `docs/slice-3b-spec.md`.
+
+## Folders
+
+### 2026-09-18 — F1 The organiser never creates folders in v1; the areas are fixed
+Journal, Mynd, Work, Personal, Inbox. New folders arrive only through a Quick Call the user
+approves (slice 6). No code under `lib/organizer/` may call `createFolder`.
+**Why:** raised by the human — a confused model tends to invent folders, because a new folder is
+never *wrong* the way a bad existing choice is. A per-run cap only rations that failure; removing
+folder creation from the organiser's path removes it. The model is a newsroom reporter: it files
+into fixed sections and never invents one; the user is the editor. Supersedes the same-day pick of
+"broad folders, capped at 3 per run", which the human reopened after raising this.
+
+### 2026-09-18 — F2 Folders are subjects, never formats; topics become notes, not folders
+No "Lists", "Meetings" or "Ideas" folders. "things to buy" is a note in Personal.
+**Why:** format folders are the biggest cause of ambiguity — a meeting agenda is both a Meeting and
+Work, and a model that cannot choose invents a third place. Subjects give each item one natural
+home, and the 3a topic labels map onto notes rather than folders.
+
+## Data model (continued)
+
+### 2026-09-18 — DM9 A capture status `skipped`, ignored by the organiser forever and never deleted
+Set by `npm run captures:skip -- <ids>`, only on `pending` captures. The capture smoke test marks
+its own rows skipped after checking them.
+**Why:** the inbox held test junk ("one", "two", "sdsd", six smoke-test rows) that the first real
+run would have filed into the vault, and every future smoke test run would have added more. An
+explicit status keeps them visible in the Captures log, needs no special-casing in the organiser,
+and deletes nothing (CAP4). Status has always been the pipeline (DM1), so this is a new state, not
+an edit to the capture.
+
+## Environment / config (continued)
+
+### 2026-09-18 — E6 `USER_TIMEZONE=Europe/London`, used only to decide a Journal entry's day
+Invalid or missing fails closed.
+**Why:** captures are stored in UTC, and Journal notes are titled by date. Without the user's zone,
+a late-evening thought can land on the wrong day's page.
+
+## The organiser pipeline (continued)
+
+### 2026-09-18 — P13 Lists are written as Markdown checkboxes; the organiser never removes an item
+An unticked item already on the list is not added again; an item ticked `- [x]` and mentioned
+again is added fresh. The user ticks and clears items in the note view (slice 4).
+**Why:** raised by the human — lists are temporary, and the vault only ever grows (D1, CAP4).
+Checkboxes let a list show what is done without the organiser ever deleting anything, and they
+answer the repetition problem for lists specifically.
+
+### 2026-09-18 — P14 Stage 2 uses short per-run references (N1, I1, X1), mapped to real ids by code
+**Why:** asking a model to copy UUIDs invites a mangled id, and a mangled id is either a failure or
+— worse — a write to the wrong note. Code issues every reference and rejects any it did not issue.
+
+### 2026-09-18 — P15 Confidence is categorical — `sure` or `unsure` — not a numeric score
+The D2 ~90% target is measured per run as the sure rate.
+**Why:** a model's self-reported probability is poorly calibrated, so a threshold on it would be
+false precision. "Would you bet the user agrees?" is a question a model answers more honestly.
+
+### 2026-09-18 — P16 An item the plan fails to place is queued (`not_placed`), not a reason to abort the run
+**Revises `ARCHITECTURE.md`**, which said a coverage failure should abort and write nothing.
+**Why:** both satisfy R1 — the item is preserved either way — but aborting blocks every other item
+in the run and retries the same failure next run, indefinitely. D2 says the queue must never block
+the 90%. After coverage, `filed + queued = items` is asserted in code.
+
+### 2026-09-18 — P17 A placement naming a folder or note that does not exist is demoted to a Quick Call
+**Why:** code never writes to a target it cannot find. This is also what enforces F1 on the output
+side: a plan that invents a folder cannot get anything written into it.
+
+### 2026-09-18 — P18 An organise run processes at most 10 pending captures, oldest first
+**Why:** Stage 2 pools every item from the run into one call. Bounding the batch keeps its input
+and its output within limits, so a large backlog is worked through over several runs rather than
+failing one huge call.
+
+## Cost (continued)
+
+### 2026-09-18 — C7 Stage 2 receives full note bodies while the vault is small
+Stage 2's input size is printed on every run.
+**Why:** summaries alone cannot show which items are already on a list, so P13's no-duplicate rule
+needs the body. At tens of notes this costs well under a cent per run. Revisit with embeddings
+(C4) once the vault reaches around a hundred notes or Stage 2 input passes ~20K tokens.
+
+## Stack (continued)
+
+### 2026-09-18 — S11 Optional `ROUTE_MODEL` for Stage 2, defaulting to `ORGANIZE_MODEL`
+**Why:** Stage 2 is where organisation quality is decided, and it runs once per run. If Haiku's
+routing disappoints, trying Sonnet 5 there costs about a cent per run and is one env line, with no
+code change — the swappable layer doing what S4 promised.
