@@ -29,3 +29,4 @@ yarn-error.log*
 # misc
 coverage/
 .turbo/
+*.tsbuildinfo

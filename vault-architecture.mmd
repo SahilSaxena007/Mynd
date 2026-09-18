@@ -1,0 +1,105 @@
+flowchart TB
+
+%% ============ CLIENT ============
+subgraph CLIENT["CLIENT — one installable web app (Next.js PWA, runs on phone and laptop)"]
+  UICapture["CAPTURE screen<br/>tap the mic, Wispr types your speech into a doc, press Send<br/>plain English: the fast 'dump a thought' box"]
+  UIVault["VAULT screen = HOME (opens here every time)<br/>coloured folders, click one to reveal its notes, open a note as a formatted page<br/>plain English: your organised second brain, sorted by topic"]
+  UICaptures["CAPTURES tab (secondary, bottom)<br/>time-ordered log of your raw voice notes, like Granola<br/>plain English: the receipts, if you want to see what you actually said"]
+  UIAsk["ASK bar<br/>type or speak a question, get an answer built only from your notes<br/>plain English: talk to your own knowledge"]
+  UIQueue["QUICK CALLS queue<br/>the ~10% the sorter was unsure about, shown with 2-3 options to pick<br/>plain English: 'I wasn't sure, you decide' — your pick becomes a permanent rule"]
+  UICorrect["CORRECT action<br/>move a note, rename, 'always file X in Y'<br/>plain English: nudge the system, it remembers forever"]
+end
+
+%% ============ API ============
+subgraph API["CLOUD SERVICE — Next.js API on Railway, locked behind one secret token"]
+  EP1["POST /capture — save a raw thought"]
+  EP2["GET /vault — folders and notes for the home screen"]
+  EP3["GET /note/:id — open one note"]
+  EP4["POST /ask — answer a question from notes"]
+  EP5["POST /rules — save a correction as a rule"]
+  EP6["POST /organize-now — run the sorter immediately"]
+  EP7["GET and POST /quick-calls — see and answer the unsure items"]
+end
+
+%% ============ PATH 1: CAPTURE ============
+subgraph P1["PATH 1 — CAPTURE (instant, no AI, sub-second)"]
+  C1["receive text + timestamp + which device"]
+  C1 --> C2["INSERT one row into 'captures' (status = pending)"]
+  C2 --> C3["return OK — you're done, nothing sorted yet on purpose"]
+end
+
+%% ============ PATH 2: ORGANIZE ============
+subgraph P2["PATH 2 — ORGANIZE (runs in the background, this is the magic)"]
+  O0["TRIGGERS: a timer ~2x a day, OR the 'organize now' button, OR inbox gets large"]
+  O0 --> OS0["STAGE 0 — GATHER (plain code, no AI)<br/>read: pending captures, all folders + their descriptions/grouping rules,<br/>one-line summaries of existing notes, your saved rules<br/>plain English: read the room before thinking"]
+  OS0 --> OS1["STAGE 1 — SPLIT (AI, prompt #1)<br/>cut each messy dump into single-topic pieces<br/>rules: one topic per piece, only split, never invent<br/>plain English: untangle the knot into clean strands"]
+  OS1 --> POOL["POOL all pieces from this run together<br/>plain English: pile them up so today's piece can join last week's note"]
+  POOL --> OS2["STAGE 2 — SORT and WRITE (AI, prompt #2 — same model, totally separate prompt with its own inputs)<br/>pick the folder from its DESCRIPTION, obey the folder's grouping rule (journal = one note per day),<br/>append to an existing note or create a new one, apply YOUR rules,<br/>write a clean Markdown note, rules: one topic, NEVER add info,<br/>give each piece a CONFIDENCE score. Output = a PLAN only, nothing saved yet"]
+  OS2 --> OS3{"STAGE 3a — COVERAGE CHECK (plain code)<br/>is every piece from Stage 1 present in the plan (filed OR queued)?"}
+  OS3 -->|"no, something vanished"| OFAIL["ABORT the run, save nothing, captures stay pending, retry next time<br/>guarantee: nothing is ever silently lost"]
+  OS3 -->|"yes, all accounted for"| OSPLIT{"STAGE 3b — CONFIDENCE GATE (plain code)"}
+  OSPLIT -->|"high confidence ~90%"| OTX["TRANSACTION: create folders, safe-append or create notes,<br/>link notes to their captures, mark captures processed, COMMIT<br/>guarantee: all-or-nothing, the vault is never half-written<br/>safe-append = keep old note exactly, add new as a block, zero loss"]
+  OSPLIT -->|"low confidence ~10%"| OQUEUE["hold in QUICK CALLS with 2-3 options<br/>not lost, not yet filed — waits for your one-tap pick"]
+end
+
+%% ============ QUICK CALLS RESOLVE ============
+UIQueue --> EP7 --> QRES["you pick an option"]
+QRES --> QRES2["file that piece + SAVE your choice as a new RULE<br/>plain English: the unsure list shrinks over time — 10% then 9% then 8%"]
+QRES2 --> OTX
+
+%% ============ PATH 3: VIEW & ASK ============
+subgraph P3["PATH 3 — VIEW and ASK (on demand)"]
+  V1["VAULT view: read folders + notes from the database, render notes as formatted pages"]
+  A1["ASK: gather the relevant notes PLUS any still-unsorted captures"]
+  A1 --> A2["AI answers ONLY from that text, cites the source note,<br/>says 'not in your notes' if absent, never makes anything up"]
+end
+
+%% ============ TEST AGENT (D3, MVP only) ============
+subgraph TEST["TEST / GRADER AGENT — MVP measurement only, NOT in the live path"]
+  G1["a SEPARATE model reads each written note + its source capture"]
+  G1 --> G2["scores: did it add info that wasn't in the source? did anything get dropped?<br/>plain English: a spot-checker that tells YOU how well the sorter is really doing"]
+  G2 --> G3["outputs a quality report for you — no effect on the user's vault"]
+end
+
+%% ============ DATABASE ============
+subgraph DB["POSTGRES database on Railway — the single source of truth"]
+  TCap[("captures<br/>raw, never edited, has a 'kind' field for future images/links/video")]
+  TFold[("folders<br/>name, slug, DESCRIPTION (purpose + grouping rule), colour, parent")]
+  TNote[("notes<br/>title, one-line summary, body in Markdown, embedding slot for later search")]
+  TSrc[("note_sources<br/>links notes to captures, many-to-many")]
+  TRule[("rules<br/>your corrections, in your own words")]
+end
+
+%% ============ WIRING ============
+UICapture --> EP1 --> C1
+UIVault --> EP2 --> V1
+UIVault --> EP3
+UIAsk --> EP4 --> A1
+UICorrect --> EP5 --> TRule
+UICaptures --> EP2
+EP6 --> O0
+
+C2 --> TCap
+OS0 -.reads.-> TCap
+OS0 -.reads.-> TFold
+OS0 -.reads.-> TNote
+OS0 -.reads.-> TRule
+OTX --> TFold
+OTX --> TNote
+OTX --> TSrc
+OTX --> TCap
+V1 -.reads.-> TFold
+V1 -.reads.-> TNote
+A1 -.reads.-> TNote
+A1 -.reads.-> TCap
+G1 -.reads.-> TNote
+G1 -.reads.-> TCap
+OTX -.new changes shown on.-> UIVault
+TRule -.feeds the next run.-> OS0
+
+classDef code fill:#e8f0ff,stroke:#3b6ea5,color:#111;
+classDef llm fill:#fff0e3,stroke:#d2691e,color:#111;
+classDef store fill:#eef7ee,stroke:#3a3,color:#111;
+class C1,C2,C3,OS0,OS3,OSPLIT,OTX,OFAIL,V1,QRES,QRES2 code;
+class OS1,OS2,A2,G1,G2 llm;
+class TCap,TFold,TNote,TSrc,TRule store;

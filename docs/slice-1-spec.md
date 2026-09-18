@@ -10,26 +10,18 @@ folder and a note, links them, reads them back, and lists active rules — all t
 
 ---
 
-## 0. Human tasks before/while building (do these yourself)
-1. **Create a new repo**, drop in these root files: `AGENTS.md`, `CLAUDE.md`, `README.md`,
-   `ARCHITECTURE.md`, `.env.example`, `.gitignore`, `vault-architecture.mmd`,
-   `vault-codebase-skeleton.md`, and this file at `docs/slice-1-spec.md`.
-2. **Set the provider spend cap NOW** (your circuit breaker): in the Anthropic Console,
-   set a monthly spend limit (start ~£20–30) and billing alerts at ~£5 and ~£15. Do this
-   before any model calls exist later. This slice makes no model calls, but set it now.
-3. **Provision Postgres on Railway**, put its URL in `.env` as `DATABASE_URL`.
-4. **Decide D-ORM below**, then let Claude Code build.
+## D-ORM — I AM GOING WITH OPTION B (plain `pg` + raw SQL)
 
-## D-ORM — one decision for you (pick before building)
 How the data layer talks to Postgres:
+
 - **Option A — Drizzle ORM + node-postgres (recommended).** Schema defined in TypeScript,
   fully type-safe queries (rows come back typed), migrations generated for you. Modern,
   lightweight, Claude Code writes it fluently, and it scales with the app.
 - **Option B — plain `pg` + raw SQL.** Simplest to read, zero abstraction, you see exactly
   what runs — but no type safety, and you hand-write migrations.
-Recommendation: **A (Drizzle)** — the type safety prevents a whole class of bugs for very
-little overhead, and you'll still see the SQL it generates. The DDL below is the target
-either way.
+  Recommendation: **A (Drizzle)** — the type safety prevents a whole class of bugs for very
+  little overhead, and you'll still see the SQL it generates. The DDL below is the target
+  either way.
 
 ---
 
@@ -104,6 +96,7 @@ lib/
 ```
 
 ## 3. `queries.ts` — the function contracts (implement exactly these)
+
 ```
 // captures
 insertCapture({ body, kind?, capturedAt, device? }) -> Capture
@@ -134,7 +127,9 @@ withTransaction(fn) -> Promise<T>
 ```
 
 ## 4. Acceptance test — `scripts/smoke.ts`
+
 Runs against the real DB and must pass end-to-end:
+
 1. `insertCapture({ body: "test dump", capturedAt: now, device: "laptop" })`
 2. `createFolder({ name: "Journal", slug: "journal", description: JOURNAL_DESC, color: "#6aa5b8" })`
 3. `createNote({ folderId, title: "2026-01-01", summary: "journal for the day", body: "# 2026-01-01\n- test" })`
@@ -143,17 +138,20 @@ Runs against the real DB and must pass end-to-end:
    (proves safe-append).
 6. `getPendingCaptures()` returns the capture; `markCaptureProcessed(id)`; now returns none.
 7. `listActiveRules()` returns `[]`; `createRule(...)`; now returns one.
-Print PASS/FAIL per step. Green across the board = slice 1 done.
+   Print PASS/FAIL per step. Green across the board = slice 1 done.
 
 ## 5. Seed folders (`seed.ts`) — demonstrates description-carries-grouping
+
 Insert just these two so the grouping-rule-in-description pattern is visible; the organizer
 creates all other folders as needed later.
+
 - **Journal** — slug `journal`, color `#6aa5b8`, description:
   `"Daily journal and personal reflections. GROUPING: one note per calendar day, titled by date (YYYY-MM-DD). Same-day entries append to that day's note."`
 - **Inbox** — slug `inbox`, color `#c9a86a`, description:
   `"Catch-all for items the organizer could not confidently place. GROUPING: one note per item; review and re-file later."`
 
 ## 6. Out of scope for slice 1 (do not build)
+
 No screens, no API routes wired to the client, no model calls, no organizer, no cron.
 Just the schema, the typed data layer, the seed, and the smoke test. Next up: slice 2
 (capture endpoint + capture screen).
