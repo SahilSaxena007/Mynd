@@ -426,3 +426,120 @@ mechanism for later schema changes", and it refuses a partially existing schema 
 `model_calls` in 3a and `quick_calls` in 3b was impossible without a rebuild that would destroy
 the capture corpus. Idempotency is the right mechanism at this scale; a numbered-migrations
 table is more machinery than a single-user project needs.
+
+---
+
+# 2026-09-18 — Slice 3a review: implementation choices recorded
+
+Made by Codex while implementing `docs/slice-3a-spec.md`, beyond what the spec required.
+Reviewed and accepted in the planning terminal. Recorded because each one is load-bearing
+for SP2 and non-obvious enough that a later change could quietly undo it.
+
+## Spend protection (continued)
+
+### 2026-09-18 — SP3 The provider SDK is constructed with `maxRetries: 0`
+**Why:** the Anthropic SDK retries 408/409/429/5xx twice by default, *inside* the SDK, where
+the per-run counter cannot see it — so one guarded call could silently become three billed
+requests. Retries off makes `MAX_CALLS_PER_RUN` an honest count and matches the `AGENTS.md`
+rule that a breach stops rather than backs off. **Never re-enable retries in
+`lib/model/anthropic.ts`**; if retrying is ever wanted, it goes through `complete()` so each
+attempt passes the guard.
+
+### 2026-09-18 — SP4 Model calls are serialized by a Postgres advisory lock (`lib/db/model-call-lock.ts`)
+The daily-cap check, the provider request, and the `model_calls` insert run under
+`pg_advisory_lock`, so two processes cannot both read "499 calls today" and both proceed.
+**Why:** without it the daily cap has a check-then-act race across processes — the cron and a
+manual preview running together could overshoot it. Cost: model calls never run in parallel,
+and a slow provider response holds one pool connection for its duration. Acceptable at
+single-user volume; revisit if Stage 1 ever needs parallel calls for speed.
+
+### 2026-09-18 — SP5 Every billed response is logged before it is validated
+A refused, truncated (`stop_reason` other than `end_turn`), or schema-invalid response is
+still written to `model_calls` first, then rejected.
+**Why:** the provider bills it either way. Logging only successful calls would make the cost
+log and the daily cap undercount exactly the calls most likely to be repeated.
+
+## The organiser pipeline (continued)
+
+### 2026-09-18 — P4 Stage prompts state that the user message is source material, not instructions
+**Why:** captures are the user's own dictation and will eventually contain phrases like
+"ignore that" or "forget the last part". Without this line, a capture could steer the
+organiser that is supposed to be filing it.
+
+### 2026-09-18 — P5 A preview run stops at the first failed capture
+Any model error calls `stopModelRun()`, so every later call in that run is refused.
+**Why:** conservative by design — it mirrors "a breach is a stop, not a backoff", and it
+means a misconfiguration fails once rather than once per capture. The cost is that one bad
+capture hides the results for every capture after it. Revisit for 3b, where the run is a
+single all-or-nothing transaction anyway.
+
+---
+
+# 2026-09-18 — Slice 3a tested against real captures; revision 3a.1
+
+Spec: `docs/slice-3a1-spec.md`. Six real captures were split for a total of under one cent, with
+no vault writes. The model never invented content, but it split by sentence rather than by topic,
+and three times it silently dropped the sentence framing everything else. Also found: the API
+credit balance ran out mid-test, and the runner disguised it as `(preview error)`.
+
+## The organiser pipeline (continued)
+
+### 2026-09-18 — P6 Stage 1 is extractive: an item is a topic label plus exact quotes from the capture, with no free-text field
+**Why:** the model's real job at this stage is deciding which of the user's sentences belong
+together. Letting it also write prose gave it room to drop and to rephrase, and made its output
+uncheckable. With quotes only, every piece of output is verifiable against the source, and
+rephrasing moves to Stage 2, which writes the note text anyway.
+
+### 2026-09-18 — P7 Code completes Stage 1 coverage: quotes are verified as substrings of the capture, and any unclaimed text becomes an `unassigned` item verbatim
+Implemented as a pure function, `completeSplit()`, called inside `stage1-split.ts` so every caller
+gets a complete split.
+**Why:** 3a proved "never drop" cannot be enforced by instruction — the same prompt dropped the
+framing sentence from one list and kept it in another. R1 requires code to hold the guarantee, and
+the coverage check planned for 3b only covered items → filed; nothing covered capture → items.
+This closes that gap. It also enforces R3 at Stage 1 in code: a quote not found in the capture is
+rejected, so nothing invented can pass. The model can now group badly; it can no longer lose text
+or add it.
+
+### 2026-09-18 — P8 A topic is what one note would be about
+Lists stay with the sentence that introduces them; examples with their point; corrections with what
+they correct; follow-up references with what they refer to. Split only where content belongs in
+different notes. Labels are short, lowercase, reusable categories — `things to buy`, not
+`[Godfather]`.
+**Why:** the 3a prompt said "single-topic" without defining it, so the model split every sentence
+and list line into its own topic: a seven-sentence thought became seven items and a shopping list
+became nine, with entries like "Monitors." carrying no hint they were things to buy. Filed as-is,
+that would have produced notes titled "We need to look at small things."
+
+### 2026-09-18 — P9 A self-correction keeps both the original statement and the correction, in order
+**Why:** "the cable for my plugs, I don't know what it's called … it was an extension cable" should
+not be collapsed to "extension cable" at the split stage — that discards the user's own words, and
+the split stage is lossless by design. Stage 2 may phrase the resulting note as "extension cable";
+that is a writing decision for 3b, and the source stays recoverable in `captures` either way.
+
+## Environment / config (continued)
+
+### 2026-09-18 — E4 Provider errors surface as HTTP status, error type, and the provider's message
+A `ModelProviderError` in `lib/model/errors.ts`; `anthropic.ts` translates SDK errors into it, so the
+SDK stays confined to one file.
+**Why:** the runner replaced every error with `(preview error)` to avoid logging user text, which
+also hid "your credit balance is too low to access the Anthropic API" — an operational message
+containing nothing of the user's. That cost three failed runs and a debugging round. Provider
+messages are shown; errors of unknown origin still show only their name.
+
+## Measurement
+
+### 2026-09-18 — M1 The word-coverage diagnostic is removed and replaced by claimed-character coverage from `completeSplit()`
+**Why:** bag-of-words matching reported 94.3% while two whole sentences were missing, because their
+common words ("I", "need", "to", "buy") appeared in other items. A metric that looks healthy while
+content is being lost is worse than no metric.
+
+## Observed, for 3b
+
+### 2026-09-18 — O1 Wispr mis-transcribes names, and the same entity can arrive spelt differently across captures
+"Vault and the Mynd" arrived as "Walt and the mind"; one colleague arrived as both "Dingerva" and
+"Dingbra" in two captures about the same meeting.
+**Why this is recorded:** Stage 2 must link captures by context, not by exact spelling, and must
+never "correct" a transcription itself — that would be guessing, and guessing is adding
+information. Mitigation on the input side: add product and people names to Wispr's personal
+dictionary. The Dingerva/Dingbra pair (`917a2ef4-…`, `1946e6fd-…`) is kept as a real test case for
+3b's cross-capture pooling.

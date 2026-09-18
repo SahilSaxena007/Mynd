@@ -59,3 +59,13 @@ export type NoteInput = {
   body: string;
 };
 export type RuleInput = { kind: string; instruction: string };
+
+export type ModelCallInput = {
+  job: "split" | "route" | "answer" | "grader";
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  estCostUsd: number;
+};
+export type ModelCall = ModelCallInput & { id: string; createdAt: Date };

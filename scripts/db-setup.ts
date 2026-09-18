@@ -7,7 +7,7 @@ async function main() {
   loadEnvConfig(process.cwd());
   try {
     const action = process.argv[2];
-    if (action === "migrate") console.log(`PASS: Slice 1 tables ${await migrate()}.`);
+    if (action === "migrate") console.log(`PASS: Schema ${await migrate()}.`);
     else if (action === "seed") {
       const folders = await seed();
       console.log(`PASS: Seed folders present: ${folders.map((folder) => folder.name).join(", ")}.`);

@@ -12,11 +12,10 @@ export async function migrate(): Promise<"created" | "already present"> {
     await query("SELECT pg_advisory_xact_lock(715001)");
     const { rows } = await query<{ name: string; exists: boolean }>(`
       SELECT name, to_regclass(name) IS NOT NULL AS exists
-      FROM unnest(ARRAY['captures', 'folders', 'notes', 'note_sources', 'rules']) AS name`);
-    const count = rows.filter((row) => row.exists).length;
-    if (count === 5) return "already present";
-    if (count !== 0) throw new Error("Partial slice 1 schema exists; refusing to overwrite it.");
+      FROM unnest(ARRAY['captures', 'folders', 'notes', 'note_sources', 'rules',
+        'model_calls', 'captures_status_idx', 'notes_folder_id_idx',
+        'note_sources_capture_id_idx', 'model_calls_created_at_idx']) AS name`);
     await query(schema);
-    return "created";
+    return rows.every((row) => row.exists) ? "already present" : "created";
   });
 }

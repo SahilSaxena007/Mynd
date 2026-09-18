@@ -47,9 +47,9 @@ All SQL stays in `lib/db/`. There is no ORM.
 
 ## Slice 1 database layer
 
-`lib/db/schema.sql` contains the exact slice 1 schema. The initial migration skips
-creation if all five tables already exist, and refuses a partially existing schema.
-It is an initial setup command, not an upgrade mechanism for later schema changes.
+`lib/db/schema.sql` contains the five vault tables plus the slice-3a `model_calls`
+ledger. The migration uses named indexes and `IF NOT EXISTS` throughout, so it can
+add missing tables and indexes without rebuilding or changing existing data.
 
 `lib/db/queries.ts` exports every query contract from the spec. Returned fields use
 camelCase, timestamps are `Date` objects, and nullable columns return `null`.
@@ -80,3 +80,26 @@ Setup references: [Next.js installation](https://nextjs.org/docs/app/getting-sta
 [node-postgres connections](https://node-postgres.com/features/connecting).
 
 Build order is in `ARCHITECTURE.md`; do one slice at a time.
+
+## Slice 3a split preview
+
+`npm run split:preview -- --dry` gathers pending captures without calling a model.
+`npm run split:preview -- --id <uuid>` previews one pending capture;
+`--limit 5` selects the five most recent pending captures. With no flags, it previews
+all pending captures until the run budget stops it. Commands without `--dry` cost money.
+Set the provider, model, and all three spend limits from `.env.example` first.
+
+Results and the exact prompt are saved under gitignored `.runs/`. Word coverage is
+a lexical diagnostic, not the no-loss guarantee. The preview leaves captures pending
+and never writes notes, folders, or sources; only model-call accounting is persisted.
+
+Free checks: `npm run typecheck`, `npm run lint`, `npm run build`, two consecutive
+`npm run db:migrate` invocations, and `npm run split:preview -- --dry`.
+`node --import tsx --test lib/model/model.test.ts` checks spend protection with fake
+HTTP and database access; it cannot spend money.
+
+Manual paid checklist (owner only): run one capture by id, read each item for a single
+topic, check for invented or missing content, and confirm gibberish is preserved
+verbatim. Check the ledger's model, job, token counts, and nonzero cost, and confirm
+captures remain pending with no new vault content. Repeat the limit cases in
+`docs/slice-3a-spec.md`; adjust only `lib/prompts/split.ts` when tuning split behaviour.

@@ -1,7 +1,7 @@
 import { query } from "./transaction";
 import type {
   Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
-  NoteMeta, NoteSummary, Rule, RuleInput,
+  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput,
 } from "./types";
 
 export { withTransaction } from "./transaction";
@@ -98,4 +98,26 @@ export async function listActiveRules(): Promise<Rule[]> {
 export async function createRule(input: RuleInput): Promise<Rule> {
   return (await query<Rule>(`INSERT INTO rules (kind, instruction)
     VALUES ($1, $2) RETURNING ${ruleColumns}`, [input.kind, input.instruction])).rows[0];
+}
+
+export async function insertModelCall(input: ModelCallInput): Promise<void> {
+  await query(`INSERT INTO model_calls
+    (job, model, input_tokens, output_tokens, cached_tokens, est_cost_usd)
+    VALUES ($1, $2, $3, $4, $5, $6)`,
+  [input.job, input.model, input.inputTokens, input.outputTokens, input.cachedTokens, input.estCostUsd]);
+}
+
+const todayStart = `(date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`;
+
+export async function countModelCallsToday(): Promise<number> {
+  const { rows } = await query<{ count: string }>(`SELECT count(*) AS count FROM model_calls
+    WHERE created_at >= ${todayStart} AND created_at < ${todayStart} + interval '24 hours'`);
+  return Number(rows[0].count);
+}
+
+export async function sumModelCostToday(): Promise<number> {
+  const { rows } = await query<{ total: string }>(`SELECT COALESCE(sum(est_cost_usd), 0) AS total
+    FROM model_calls WHERE created_at >= ${todayStart}
+    AND created_at < ${todayStart} + interval '24 hours'`);
+  return Number(rows[0].total);
 }
