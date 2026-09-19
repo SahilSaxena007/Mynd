@@ -53,7 +53,7 @@ lib/prompts/route.ts            # MODIFY: P26
 lib/db/seed.ts                  # MODIFY: + Tasks area
 lib/db/queries.ts               # MODIFY: + updateFolderDescription(slug, description)
 lib/db/types.ts                 # MODIFY: quick-call reason adds 'added_detail'
-lib/organizer/index.ts          # MODIFY: "incomplete" errors name the stop_reason
+lib/model/index.ts              # MODIFY: "incomplete" errors name the stop_reason (thrown here)
 scripts/folders-describe.ts     # NEW: npm run folders:describe -- <slug> "<description>"
 scripts/route-preview.ts        # MODIFY: + --thinking-budget N (0 = off)
 scripts/organize-check.ts       # MODIFY: + cases in §7
@@ -147,6 +147,10 @@ Add to `lib/prompts/route.ts`:
 
 "Model response incomplete or refused" becomes specific: include the `stop_reason` —
 `max_tokens`, `refusal`, and so on. It is operational text, never user content.
+
+The error is thrown in `lib/model/index.ts`, the only place the stop reason is still known — the
+organiser only ever sees the error. The `model_calls` row must still be written **before** the throw,
+exactly as today (SP5): a truncated or refused response is billed and must be counted.
 
 ## 7. Verification
 
