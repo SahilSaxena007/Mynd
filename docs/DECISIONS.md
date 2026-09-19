@@ -778,3 +778,87 @@ without ever touching the vault.
 
 ### 2026-09-19 — P19 superseded by P23 — the capture lock lands in 3b.1, not 3c
 `markCaptureProcessed` now also requires `status = 'pending'`, so no path can re-process a capture.
+
+---
+
+# 2026-09-19 — Slice 3b.1 results and model comparison; revision 3b.2
+
+Spec: `docs/slice-3b2-spec.md`. Replaying the seven test captures on Haiku after 3b.1: no sentence
+scraps, qualifiers and examples kept, sure rate 69% (from 40%). New problems: an invented date,
+tasks filed into the Journal, two themes merged into one note, and one rambling thought split into
+four Quick Calls. The Sonnet 5 comparison failed outright.
+
+## Observed
+
+### 2026-09-19 — O4 First observed breach of R3: an invented, wrong date
+From "meeting with Dingerva on the 12th", Haiku wrote "Meeting scheduled for 2026-09-12" — in the
+note title and the body. The user never said a month or year, and dictated this on 18 September, so
+"the 12th" almost certainly meant October: the invented date was also wrong. The route prompt
+already forbade adding dates.
+**Why this is recorded:** it proves R3 cannot rest on instruction alone for the kind of fact that
+does the most damage, and led directly to P24.
+
+### 2026-09-19 — C8 Correction to S12's cost estimate: Sonnet 5 thinks by default
+S12 estimated "about a cent more per run". Sonnet 5 runs adaptive thinking when `thinking` is
+omitted, and thinking is billed as output: it used all 8,000 output tokens without finishing,
+`stop_reason: max_tokens`, $0.087 per attempt — two attempts, $0.17, no usable result. Measured
+Haiku routing on the same input: 1,104 output tokens, $0.008.
+**Why this is recorded:** cost estimates for any model with default thinking must include thinking
+tokens. At full strength, Sonnet routing would cost roughly $7–12 a month and need a higher token
+cap — incompatible with the 80–90% margin target.
+
+## Decisions made by the human
+
+### 2026-09-19 — P24 No new numbers: any number the organiser writes must appear in what the user said — enforced in code
+Digit runs in written blocks, and in new notes' titles and summaries, are checked against digit runs
+in the source item text, after stripping leading zeros. A mismatch queues the item as a Quick Call
+with reason `added_detail`. The one exemption: a Journal note title equal to the item's local date,
+which code produces.
+**Why:** O4. Numbers are the one kind of fact code can verify exactly — said or not said — and
+invented numbers do the most harm: a wrong meeting date, time, price or amount. This moves that part
+of R3 from instruction to guarantee. Accepted cost: a number spoken as a word ("twelfth") and written
+as digits becomes a Quick Call — the safe side to be wrong on. Invented *words* remain the D3
+grader's job.
+
+### 2026-09-19 — F3 Tasks is a sixth fixed area
+Areas: Journal, Tasks, Mynd, Work, Personal, Inbox. Amends F1 (six areas, still fixed, still never
+created by the organiser) and makes one principled exception to F2.
+**Why:** raised by the human after "call mom" and "book the dentist" were filed `sure` into the
+Journal. Tasks are not a format like "Lists": whether something is an *action* is the central
+distinction of GTD (IA2) — actions get their own place, separate from reference material. Journal
+becomes reflections only. Tasks are checklist notes per area of life, with timing kept exactly as
+spoken.
+
+### 2026-09-19 — S13 Routing runs on Haiku 4.5 with a thinking budget (default 2,048 tokens); supersedes S12
+**Why:** Haiku without thinking did well after 3b.1, and its remaining errors were judgment calls a
+little reasoning should help with. Haiku supports thinking with a budget, which steers how much it
+thinks — more control than Sonnet 5's adaptive thinking, and no new provider. About $0.018 per run,
+roughly $1.10 a month. The budget is a target, not a hard cap; `max_tokens` remains the ceiling.
+
+### 2026-09-19 — M2 Models compared for routing; a second provider only if Haiku with thinking still misjudges
+Checked 2026-09-19 against the providers' own pricing pages, per million tokens: Haiku 4.5 $1/$5;
+Sonnet 5 $2/$10; Gemini 3.8 Flash $0.75/$3.75 until 31 Dec 2026, then $1.50/$7.50, with thinking
+always on at level low/medium/high; Gemini 3.5 Flash-Lite $0.30/$2.50; OpenAI GPT-5 mini $0.25/$2.00.
+**Why this is recorded:** every option costs between about $0.35 and $1.40 a month for routing, so
+price does not separate them — quality on real captures does, and only a replay on the same captures
+can show that. A second provider also means the user's private thoughts go to a second company under
+its data terms (Gemini's free tier uses content to improve Google's products; its paid tier does not).
+Shortlist if needed: Gemini 3.8 Flash and GPT-5 mini, via a `lib/model/` adapter as S4 intended.
+
+## Derived decisions, flagged for review
+
+### 2026-09-19 — P25 On Haiku, thinking and `temperature` are incompatible: split keeps temperature 0 without thinking; routing thinks without temperature
+Amends P20. Per Anthropic's docs, on Haiku 4.5 "`temperature` and `top_k` are incompatible with
+thinking."
+**Why:** routing therefore varies somewhat from run to run. That is acceptable because P23 applies
+exactly the plan the user reviewed; for unattended runs (3c), the variation is accepted.
+
+### 2026-09-19 — P26 The route prompt keeps relative dates as spoken, one theme per note, and a continuing thought together
+**Why:** O4; the "organizer prompts and user involvement" note that joined two themes (R4 — a title
+needing "and" is two notes); and one rambling thought split into four Quick Calls, each proposing its
+own new note.
+
+### 2026-09-19 — DM10 Folder descriptions are editable with `npm run folders:describe`
+**Why:** DM2 says folder behaviour changes by editing its description, but the seed deliberately never
+overwrites an existing one, so there was no way to make that edit. This is a user tool; it changes
+descriptions only and cannot create, rename or move a folder, so F1 holds.

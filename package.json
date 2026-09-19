@@ -17,6 +17,7 @@
     "split:check": "tsx scripts/split-coverage-check.ts",
     "organize": "tsx scripts/organize.ts",
     "organize:check": "tsx scripts/organize-check.ts",
+    "route:preview": "tsx scripts/route-preview.ts",
     "captures:skip": "tsx scripts/skip-captures.ts",
     "vault:print": "tsx scripts/vault-print.ts"
   },

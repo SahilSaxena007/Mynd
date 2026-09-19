@@ -30,6 +30,11 @@ export async function getPendingCaptures(limit?: number): Promise<Capture[]> {
     WHERE status = 'pending' ORDER BY captured_at, id LIMIT $1`, [limit ?? null])).rows;
 }
 
+export async function getCapturesByIds(ids: string[]): Promise<Capture[]> {
+  return (await query<Capture>(`SELECT ${captureColumns} FROM captures
+    WHERE id = ANY($1::uuid[]) ORDER BY captured_at, id`, [ids])).rows;
+}
+
 export async function skipCaptures(ids: string[]): Promise<number> {
   if (!ids.length) return 0;
   return withTransaction(async () => {
@@ -68,8 +73,8 @@ export async function listCaptures(limit = 100): Promise<Capture[]> {
 
 export async function markCaptureProcessed(id: string): Promise<void> {
   const result = await query(`UPDATE captures SET status = 'processed',
-    processed_at = COALESCE(processed_at, now()) WHERE id = $1`, [id]);
-  if (result.rowCount !== 1) throw new Error("Capture not found.");
+    processed_at = COALESCE(processed_at, now()) WHERE id = $1 AND status = 'pending'`, [id]);
+  if (result.rowCount !== 1) throw new Error("Capture not found or no longer pending.");
 }
 
 export async function listFolders(): Promise<Folder[]> {

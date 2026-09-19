@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { closeDb } from "../lib/db/client";
-import { createFolder, createNote, getNote, getNotesWithBodies, getPendingCaptures, insertCapture, listOpenQuickCalls } from "../lib/db/queries";
+import { createFolder, createNote, getNote, getNotesWithBodies, getPendingCaptures, insertCapture, listOpenQuickCalls, markCaptureProcessed, skipCaptures } from "../lib/db/queries";
 import { injectOrganizeFailure, organizeRowCounts, withOrganizeCheckSchema } from "../lib/db/organize-check-support";
 import type { Capture, Folder, Note, QuickCallOption } from "../lib/db/types";
 import { resolveCoverage } from "../lib/organizer/coverage";
 import { buildRefs, localDate } from "../lib/organizer/refs";
 import type { Placement, RoutePlan } from "../lib/organizer/route-types";
 import { applyPlan } from "../lib/organizer/stage3-apply";
+import { applySavedRun, savedPlan } from "../lib/organizer";
+import { samplingParameters } from "../lib/model/capabilities";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -28,8 +31,11 @@ function pass(label: string) { console.log(`PASS ${++passed}: ${label}`); }
 
 async function main() {
   loadEnvConfig(process.cwd());
-  // This entry point never imports the model layer. A missing key also prevents accidental requests.
+  // No test invokes the model layer. Block HTTP as an additional regression tripwire.
   process.env.ANTHROPIC_API_KEY = "";
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async () => { requests++; throw new Error("HTTP is forbidden in organize:check"); };
   try {
     let result = resolveCoverage(refs, empty);
     assert.equal(result.queued[0].reason, "not_placed");
@@ -74,7 +80,7 @@ async function main() {
 
     await withOrganizeCheckSchema(async () => {
       const first = await insertCapture({ body: "buy milk", capturedAt: date });
-      const second = await insertCapture({ body: "buy eggs", capturedAt: date });
+      const second = await insertCapture({ body: "buy milk", capturedAt: date });
       const area = await createFolder({ name: "Personal", slug: "personal" });
       const existing = await createNote({ folderId: area.id, title: "existing", summary: "original summary", body: "original bytes" });
       const missing = { ...existing, id: randomUUID() };
@@ -85,6 +91,9 @@ async function main() {
           { ...sure, item: "I2", note: "N1", markdown: "appended block" },
           { ...sure, item: "I3", note: "X1", markdown: "second block" },
           { ...sure, item: "I4", note: "N2" }] });
+      await assert.rejects(applyPlan(run, planned, true), /target is missing or changed/);
+      assert.deepEqual(await organizeRowCounts(), { notes: 1, sources: 0, calls: 0, modelCalls: 0 });
+      assert.equal((await getPendingCaptures()).length, 2);
       const applied = await applyPlan(run, planned);
       assert.equal(applied.queued.find((call) => call.item === "I4")?.reason, "invalid_target");
       assert.equal(applied.filed.length + applied.queued.length, run.items.length);
@@ -118,12 +127,91 @@ async function main() {
     assert.throws(() => localDate(date, "not/a-zone"), RangeError);
     pass("London summer dates, including midnight boundary; timezone fails closed");
 
+    const directory = await mkdtemp(join(tmpdir(), "mynd-apply-check-"));
+    try {
+      await withOrganizeCheckSchema(async () => {
+        const stored = await insertCapture({ body: "buy milk", capturedAt: date });
+        const area = await createFolder({ name: "Personal", slug: "personal" });
+        const existing = await createNote({ folderId: area.id, title: "existing", body: "original bytes" });
+        const run = buildRefs([stored], [area], [existing], [], [[item, item, item]], "Europe/London");
+        const plan = resolveCoverage(run, { new_notes: [{ ref: "X1", folder: "personal", title: "reviewed title", summary: "reviewed summary" }],
+          placements: [{ ...sure, note: "X1", markdown: "- [ ] milk, but I am not sure" },
+            { ...sure, item: "I2", markdown: "reviewed append\nwith line breaks" }] });
+        const file = join(directory, "dry.json");
+        const saved = savedPlan(run, plan);
+        await writeFile(file, JSON.stringify(saved));
+        assert.deepEqual(await applySavedRun(file, directory), plan);
+        const notes = await getNotesWithBodies();
+        assert.equal(notes.find((note) => note.id === existing.id)?.body, "original bytes\nreviewed append\nwith line breaks");
+        const fresh = notes.find((note) => note.id !== existing.id)!;
+        assert.equal(fresh.title, "reviewed title");
+        assert.equal(fresh.summary, "reviewed summary");
+        assert.equal(fresh.body, "- [ ] milk, but I am not sure");
+        const calls = await listOpenQuickCalls();
+        assert.equal(calls[0].itemText, plan.queued[0].itemText);
+        assert.equal(calls[0].reason, plan.queued[0].reason);
+        assert.deepEqual(await organizeRowCounts(), { notes: 2, sources: 2, calls: 1, modelCalls: 0 });
+        const records = await Promise.all((await readdir(directory)).filter((name) => name !== "dry.json")
+          .map(async (name) => JSON.parse(await readFile(join(directory, name), "utf8"))));
+        assert.equal(records.length, 1);
+        assert.equal(records[0].appliedFrom, file);
+        assert.equal(records[0].modelCalls, 0);
+        pass("saved dry run writes exact reviewed blocks and queues with zero model calls");
+
+        const before = await organizeRowCounts();
+        await assert.rejects(applySavedRun(file, directory), /no longer pending/);
+        assert.deepEqual(await organizeRowCounts(), before);
+        assert.deepEqual(await getNotesWithBodies(), notes);
+        assert.deepEqual(await listOpenQuickCalls(), calls);
+        pass("second apply refused without another write");
+
+        // Corrupt structure must not be repaired into a different, applyable plan.
+        const malformed = join(directory, "malformed.json");
+        for (const invalid of [{ ...saved, dry: false }, { ...saved, refs: undefined },
+          { ...saved, plan: { ...plan, filed: [] } },
+          { ...saved, plan: { ...plan, filed: [plan.filed[0], plan.filed[0]] } }]) {
+          await writeFile(malformed, JSON.stringify(invalid));
+          await assert.rejects(applySavedRun(malformed, directory), /saved|coverage/i);
+        }
+      });
+      await withOrganizeCheckSchema(async () => {
+        const pending = await insertCapture({ body: "buy milk", capturedAt: date });
+        const skipped = await insertCapture({ body: "buy milk", capturedAt: date });
+        const area = await createFolder({ name: "Personal", slug: "personal" });
+        const run = buildRefs([pending, skipped], [area], [], [], [[item], [item]], "Europe/London");
+        const plan = resolveCoverage(run, { new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "" }],
+          placements: [{ ...sure, note: "X1" }, { ...sure, item: "I2", note: "X1" }] });
+        const file = join(directory, "skipped.json");
+        await writeFile(file, JSON.stringify(savedPlan(run, plan)));
+        await skipCaptures([skipped.id]);
+        await assert.rejects(applySavedRun(file, directory), /no longer pending/);
+        await assert.rejects(applyPlan(run, plan), /no longer pending/);
+        assert.deepEqual(await organizeRowCounts(), { notes: 0, sources: 0, calls: 0, modelCalls: 0 });
+        assert.deepEqual(await getPendingCaptures(), [pending]);
+        pass("one non-pending capture refuses saved and plain apply atomically");
+
+        await assert.rejects(markCaptureProcessed(skipped.id), /no longer pending/);
+        await markCaptureProcessed(pending.id);
+        await assert.rejects(markCaptureProcessed(pending.id), /no longer pending/);
+        pass("markCaptureProcessed refuses skipped and processed captures");
+      });
+    } finally { await rm(directory, { recursive: true, force: true }); }
+
+    for (const job of ["split", "route"]) {
+      assert.deepEqual(samplingParameters("claude-haiku-4-5", job), { temperature: 0 });
+      assert.deepEqual(samplingParameters("claude-sonnet-5", job), {});
+      assert.deepEqual(samplingParameters("unknown", job), {});
+      assert.deepEqual(samplingParameters("constructor", job), {});
+    }
+    for (const job of ["answer", "grader"]) assert.deepEqual(samplingParameters("claude-haiku-4-5", job), {});
+    assert.equal(requests, 0);
+
     for (const file of await readdir(join(process.cwd(), "lib/organizer"))) {
       if (file.endsWith(".ts")) assert.ok(!(await readFile(join(process.cwd(), "lib/organizer", file), "utf8")).includes("createFolder"), file);
     }
-    console.log("8/8 cases passed; no organizer folder creation; zero model calls.");
+    console.log("12/12 cases passed; capability gating verified; no organizer folder creation; zero model calls.");
   } catch (error) {
     console.error(error); process.exitCode = 1;
-  } finally { await closeDb(); }
+  } finally { globalThis.fetch = previousFetch; await closeDb(); }
 }
 void main();

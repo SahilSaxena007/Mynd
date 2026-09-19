@@ -2,6 +2,20 @@ export type SplitItem = { topic: string; quotes: string[]; unassigned: boolean }
 export type ModelSplitItem = { topic: string; quotes: string[] };
 type Span = { start: number; end: number };
 
+function sentences(text: string): Span[] {
+  const result: Span[] = [];
+  let start = 0;
+  for (let at = 0; at < text.length; at++) {
+    if (text[at] === "\n" || text[at] === "\r"
+      || (/[.?!]/u.test(text[at]) && (at + 1 === text.length || /\s/u.test(text[at + 1])))) {
+      result.push({ start, end: at + 1 });
+      start = at + 1;
+    }
+  }
+  if (start < text.length) result.push({ start, end: text.length });
+  return result;
+}
+
 // Each normalized UTF-16 unit maps to a complete original character/whitespace run.
 function normalize(source: string) {
   let text = "";
@@ -31,7 +45,6 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
   const rejectedQuotes: string[] = [];
   let overlaps = 0;
   modelItems.forEach((item, itemIndex) => {
-    const passages: Span[] = [];
     for (const quote of item.quotes) {
       const needle = normalize(quote).text;
       let selected: Span | undefined;
@@ -54,14 +67,54 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
       if (owners.slice(selected.start, selected.end).some((claimed) =>
         [...claimed].some((owner) => owner !== itemIndex))) overlaps++;
       for (let i = selected.start; i < selected.end; i++) owners[i].add(itemIndex);
-      passages.push(selected);
     }
-    passages.sort((a, b) => a.start - b.start);
+  });
+
+  // Keep the diagnostic about MODEL claims, before code absorbs any text.
+  const modelClaimed = owners.map((claimed) => claimed.size > 0);
+  const segments = sentences(captureBody);
+  const absorbedSpans = { sentenceIntegrity: 0, singleHome: 0 };
+  for (const segment of segments) {
+    for (let start = segment.start; start < segment.end;) {
+      if (owners[start].size) { start++; continue; }
+      let end = start + 1;
+      while (end < segment.end && !owners[end].size) end++;
+      const neighbour = start > segment.start ? owners[start - 1] : end < segment.end ? owners[end] : undefined;
+      if (neighbour?.size) {
+        const owner = neighbour.values().next().value!;
+        for (let at = start; at < end; at++) owners[at].add(owner);
+        absorbedSpans.sentenceIntegrity++;
+      }
+      start = end;
+    }
+  }
+  const segmentOwners = segments.map(({ start, end }) => new Set(owners.slice(start, end).flatMap((entry) => [...entry])));
+  for (let first = 0; first < segments.length;) {
+    if (segmentOwners[first].size) { first++; continue; }
+    let after = first + 1;
+    while (after < segments.length && !segmentOwners[after].size) after++;
+    const neighbours = new Set([...(segmentOwners[first - 1] ?? []), ...(segmentOwners[after] ?? [])]);
+    if (neighbours.size === 1) {
+      const owner = neighbours.values().next().value!;
+      for (let at = segments[first].start; at < segments[after - 1].end; at++) owners[at].add(owner);
+      absorbedSpans.singleHome++;
+    }
+    first = after;
+  }
+  // Rebuild quotes from original character ranges, including only owned text.
+  modelItems.forEach((item, owner) => {
+    const passages: Span[] = [];
+    for (let start = 0; start < captureBody.length;) {
+      if (!owners[start].has(owner)) { start++; continue; }
+      let end = start + 1;
+      while (end < captureBody.length && owners[end].has(owner)) end++;
+      passages.push({ start, end });
+      start = end;
+    }
     if (passages.length) ordered.push({ start: passages[0].start, item: {
       topic: item.topic.toLowerCase(), quotes: passages.map(({ start, end }) => captureBody.slice(start, end)), unassigned: false,
     } });
   });
-
   for (let start = 0; start < captureBody.length;) {
     if (owners[start].size) { start++; continue; }
     let end = start + 1;
@@ -79,11 +132,11 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
     const character = String.fromCodePoint(captureBody.codePointAt(at)!);
     if (/[\p{L}\p{N}]/u.test(character)) {
       meaningful++;
-      if (owners[at].size) claimed++;
+      if (modelClaimed[at]) claimed++;
     }
     at += character.length;
   }
   ordered.sort((a, b) => a.start - b.start);
   return { items: ordered.map(({ item }) => item),
-    claimedFraction: meaningful ? claimed / meaningful : 1, rejectedQuotes, overlaps };
+    claimedFraction: meaningful ? claimed / meaningful : 1, rejectedQuotes, overlaps, absorbedSpans };
 }

@@ -7,7 +7,8 @@ const unassigned = (text: string) => ({ topic: "unassigned", quotes: [text], una
 const cases: [string, () => void][] = [
   ["Skipped sentence is restored verbatim", () => {
     const result = completeSplit("First. Skipped sentence. Last.", [item(["First.", "Last."])]);
-    assert.deepEqual(result.items[1], unassigned(" Skipped sentence. "));
+    assert.deepEqual(result.items[0].quotes, ["First. Skipped sentence. Last."]);
+    assert.equal(result.items.length, 1);
     assert.equal(result.claimedFraction, 9 / 24);
   }],
   ["Curly apostrophes match straight originals", () => {
@@ -54,9 +55,49 @@ const cases: [string, () => void][] = [
     const before = JSON.stringify(model);
     const result = completeSplit("First. Second. Third.", model);
     assert.deepEqual(result.items.map((entry) => entry.topic), ["earlier", "later"]);
-    assert.deepEqual(result.items[1].quotes, ["Second.", "Third."]);
+    assert.deepEqual(result.items[1].quotes, [" Second. Third."]);
     assert.equal(JSON.stringify(model), before, "inputs must not be mutated");
     assert.deepEqual(completeSplit("First. Second. Third.", model), result, "deterministic output");
+  }],
+  ["Dingbra sentence scraps rejoin the whole capture", () => {
+    const source = "Remember I told you I have a meeting with Dingbra? Now I know what to speak to him about. I need access to the system. If you could provide that, thanks!";
+    const result = completeSplit(source, [item(["I have a meeting with Dingbra", "I need access to the system"], "Work")]);
+    assert.deepEqual(result.items, [{ topic: "work", quotes: [source], unassigned: false }]);
+    assert.ok(result.absorbedSpans.sentenceIntegrity > 0);
+    assert.equal(result.absorbedSpans.singleHome, 2);
+    assert.ok(result.claimedFraction < 1, "model diagnostic excludes code repairs");
+  }],
+  ["Sandwiched sentence joins its one possible item", () => {
+    const source = "First! Keep this example? Last.";
+    const result = completeSplit(source, [item(["First!", "Last."])]);
+    assert.deepEqual(result.items[0].quotes, [source]);
+    assert.equal(result.items.length, 1);
+    assert.equal(result.absorbedSpans.singleHome, 1);
+  }],
+  ["Sentence between different items remains unassigned", () => {
+    const source = "Work. Maybe this belongs elsewhere. Home.";
+    const result = completeSplit(source, [item(["Work."], "work"), item(["Home."], "home")]);
+    assert.deepEqual(result.items[1], unassigned(" Maybe this belongs elsewhere."));
+    assert.equal(result.absorbedSpans.singleHome, 0);
+    assert.equal(result.items.flatMap((entry) => entry.quotes).join(""), source);
+    // A sentence claimed by multiple items is not a single possible home either.
+    const mixed = completeSplit("Work and home. Unclear. Home.", [item(["Work"], "work"), item(["home", "Home."], "home")]);
+    assert.equal(mixed.items.find((entry) => entry.unassigned)?.quotes[0], " Unclear.");
+  }],
+  ["First and last unclaimed sentences join their only neighbour", () => {
+    const source = "Opening. Claimed. Closing.";
+    const result = completeSplit(source, [item(["Claimed."])]);
+    assert.deepEqual(result.items[0].quotes, [source]);
+    assert.equal(result.items.length, 1);
+    assert.equal(result.absorbedSpans.singleHome, 2);
+  }],
+  ["List lines are segments and keep their original line breaks", () => {
+    const source = "- milk\r\n- shoes, but I am not sure\r\n- bread";
+    const result = completeSplit(source, [item(["- milk", "- bread"])]);
+    assert.deepEqual(result.items[0].quotes, [source]);
+    assert.equal(result.items.length, 1);
+    const separate = completeSplit("Work\nUnknown\nHome", [item(["Work"], "work"), item(["Home"], "home")]);
+    assert.deepEqual(separate.items[1], unassigned("Unknown\n"));
   }],
 ];
 
@@ -73,4 +114,4 @@ assert.equal(formatPreviewError(new Error("Model call refused: DAILY_CALL_CAP ex
 assert.equal(formatPreviewError(new SyntaxError("private capture text")), "FAIL: SyntaxError");
 assert.equal(formatPreviewError(new Error("private capture text")), "FAIL: Error");
 console.log("PASS: Error visibility and unknown-message redaction");
-console.log("PASS: All 7 coverage cases; zero model calls (no model or database imports).");
+console.log("PASS: All 12 coverage cases; zero model calls (no model or database imports).");
