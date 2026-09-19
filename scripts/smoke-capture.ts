@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { loadEnvConfig } from "@next/env";
 import { closeDb } from "../lib/db/client";
-import { listCaptures } from "../lib/db/queries";
+import { listCaptures, skipCaptures } from "../lib/db/queries";
 
 loadEnvConfig(process.cwd());
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const token = process.env.SECRET_TOKEN;
 let step = 0;
+const ownIds: string[] = [];
 
 async function check(label: string, run: () => Promise<void>) {
   step += 1;
@@ -44,6 +45,7 @@ async function main() {
       assert.ok(result.id);
       assert.ok(Date.parse(result.capturedAt) >= started - 1000);
       firstId = result.id;
+      ownIds.push(firstId);
     });
     await check("Database preserves raw capture and pending defaults", async () => {
       const row = (await listCaptures()).find((capture) => capture.id === firstId);
@@ -60,6 +62,7 @@ async function main() {
       const response = await post({ body: "smoke test — x", kind: "image", capturedAt: "1999-01-01", captured_at: "1999-01-01" }, token);
       assert.equal(response.status, 201);
       latestId = (await response.json()).id;
+      ownIds.push(latestId);
       const row = (await listCaptures()).find((capture) => capture.id === latestId);
       assert.ok(row);
       assert.equal(row.kind, "text");
@@ -77,12 +80,13 @@ async function main() {
     await check("Unauthenticated log rejected", async () => {
       assert.equal((await fetch(`${base}/api/captures`)).status, 401);
     });
-    console.log("8/8 checks passed. Both smoke captures remain in the inbox.");
+    console.log("8/8 checks passed. Smoke captures will be marked skipped.");
   } catch {
     console.error(`FAIL ${step || "setup"}: capture acceptance check failed.`);
     process.exitCode = 1;
   } finally {
-    await closeDb();
+    try { await skipCaptures(ownIds); }
+    finally { await closeDb(); }
   }
 }
 

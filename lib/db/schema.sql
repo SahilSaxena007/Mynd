@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 
 CREATE TABLE IF NOT EXISTS note_sources (
-  note_id uuid NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  note_id uuid NOT NULL REFERENCES notes(id),
   capture_id uuid NOT NULL REFERENCES captures(id),
   PRIMARY KEY (note_id, capture_id)
 );
@@ -60,3 +60,16 @@ CREATE TABLE IF NOT EXISTS model_calls (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS model_calls_created_at_idx ON model_calls (created_at);
+
+CREATE TABLE IF NOT EXISTS quick_calls (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  capture_id uuid NOT NULL REFERENCES captures(id),
+  topic text NOT NULL,
+  item_text text NOT NULL,
+  options jsonb NOT NULL DEFAULT '[]',
+  reason text NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS quick_calls_status_idx ON quick_calls (status);

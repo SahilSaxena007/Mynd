@@ -1,10 +1,18 @@
 import { Pool } from "pg";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const scopedDb = new AsyncLocalStorage<Pool>();
+export function withDatabase<T>(pool: Pool, fn: () => Promise<T>): Promise<T> {
+  return scopedDb.run(pool, fn);
+}
 
 const globalForDb = globalThis as typeof globalThis & {
   vaultDb?: Pool;
 };
 
 export function getDb(): Pool {
+  const scoped = scopedDb.getStore();
+  if (scoped) return scoped;
   if (globalForDb.vaultDb) return globalForDb.vaultDb;
 
   const connectionString = process.env.DATABASE_URL;

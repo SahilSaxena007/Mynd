@@ -4,7 +4,7 @@ export type Capture = {
   kind: string;
   capturedAt: Date;
   device: string | null;
-  status: "pending" | "processed" | "failed";
+  status: "pending" | "processed" | "failed" | "skipped";
   processedAt: Date | null;
   createdAt: Date;
 };
@@ -69,3 +69,14 @@ export type ModelCallInput = {
   estCostUsd: number;
 };
 export type ModelCall = ModelCallInput & { id: string; createdAt: Date };
+
+export type QuickCallOption = {
+  label: string; folder: string; note: string; new_note_title: string; new_folder_name: string;
+};
+export type QuickCallInput = {
+  captureId: string; topic: string; itemText: string; options: QuickCallOption[];
+  reason: "unsure" | "invalid_target" | "not_placed";
+};
+export type QuickCall = QuickCallInput & {
+  id: string; status: "open" | "resolved"; createdAt: Date; resolvedAt: Date | null;
+};

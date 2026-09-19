@@ -58,7 +58,7 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
     }
     passages.sort((a, b) => a.start - b.start);
     if (passages.length) ordered.push({ start: passages[0].start, item: {
-      topic: item.topic, quotes: passages.map(({ start, end }) => captureBody.slice(start, end)), unassigned: false,
+      topic: item.topic.toLowerCase(), quotes: passages.map(({ start, end }) => captureBody.slice(start, end)), unassigned: false,
     } });
   });
 

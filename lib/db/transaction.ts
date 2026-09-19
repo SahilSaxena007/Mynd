@@ -5,6 +5,10 @@ import { getDb } from "./client";
 type Transaction = { client: PoolClient; active: boolean };
 const transaction = new AsyncLocalStorage<Transaction>();
 
+export function assertOutsideTransaction(): void {
+  if (transaction.getStore()) throw new Error("Model calls cannot run inside a vault transaction.");
+}
+
 // Every query inside withTransaction uses the same checked-out connection.
 export function query<Row extends QueryResultRow>(sql: string, values: unknown[] = []) {
   const context = transaction.getStore();

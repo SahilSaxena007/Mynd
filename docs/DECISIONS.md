@@ -671,3 +671,110 @@ needs the body. At tens of notes this costs well under a cent per run. Revisit w
 **Why:** Stage 2 is where organisation quality is decided, and it runs once per run. If Haiku's
 routing disappoints, trying Sonnet 5 there costs about a cent per run and is one env line, with no
 code change — the swappable layer doing what S4 promised.
+
+---
+
+# 2026-09-19 — Slice 3b review, before first real run
+
+`organize:check` passes 8/8 with zero model calls, including the injected-failure rollback (R2).
+F1 holds by construction: nothing under `lib/organizer/` references `createFolder`. Beyond the
+spec, Codex added `assertOutsideTransaction()`, so a model call inside a vault transaction is
+impossible rather than merely avoided, and it re-locks and re-checks target folders and notes
+inside the apply transaction.
+
+## Carried into 3c
+
+### 2026-09-19 — P19 The apply transaction must lock the run's captures and confirm they are still `pending` before writing
+**Found in review:** `applyPlan` locks target folders and notes but not captures, and
+`markCaptureProcessed` does not require `status = 'pending'`. Two overlapping organise runs would
+both gather the same captures, both plan, and both write — duplicate notes and appended blocks.
+A capture skipped between planning and applying would also still be filed.
+**Why it waits for 3c:** nothing is lost either way (R1 holds), and overlap is impossible while
+runs are started by hand one at a time. The cron in 3c is what makes two runs able to overlap, so
+the fix must land before, or with, the cron: lock the captures `FOR UPDATE` inside the
+transaction, require every one to still be `pending`, and roll back the whole apply if any is not.
+**Until then:** never run two `organize` commands at the same time.
+
+---
+
+# 2026-09-19 — Slice 3b first real run; revision 3b.1
+
+Spec: `docs/slice-3b1-spec.md`. Seven real captures, one dry run and one real run, about four cents
+in total. The guarantees held throughout: nothing lost, nothing invented, no half-writes. The
+quality did not.
+
+## What the first real run left in the vault
+
+### 2026-09-19 — O3 The first real run filed one item into the wrong note, and it stays there
+The Mynd idea "the organizer could use two prompts instead of one" was filed `sure` into the Work
+note "meeting with Dingerva". Nine Quick Calls are open, four of them sentence scraps.
+**Why this is recorded:** it is the failure no code check can catch — the folder and the note both
+existed — and append-only notes (D1) mean the organiser cannot undo it. The user will move the line
+by hand once slice 4 adds note editing. Nothing was lost.
+
+## Decisions made by the human
+
+### 2026-09-19 — P23 The real run applies exactly the plan the user reviewed
+`organize --dry` saves an applyable plan; `organize --apply <run file>` writes it with no model call,
+after re-checking inside the transaction that every capture is still `pending` and every target
+still exists.
+**Why:** the dry run and the real run of the same seven captures disagreed on the two most important
+calls — whether Dingerva and Dingbra share a note, and whether the "two prompts" idea was filed. The
+user approved one plan and got a different, worse one, which makes review meaningless. Applying the
+reviewed plan exactly restores it, and the capture lock it needs is the P19 fix, so one mechanism
+solves both. (Considered and rejected: only lowering randomness, which reduces the variation but
+does not guarantee that the reviewed plan is the written one.)
+
+### 2026-09-19 — S12 Stage 2 routes on `claude-sonnet-5`; splitting stays on `claude-haiku-4-5`
+**Why:** the misfile was a confident judgment error in routing, the step where organisation quality
+is decided, and it runs once per run — roughly a cent more per run, about $0.30 a month at two runs
+a day. S11 made this a one-line env change. To be compared against Haiku on the same seven captures
+with `route:preview` before being relied on.
+
+### 2026-09-19 — O2 Name mismatches from transcription are not engineered around
+**Why:** the human's call — "Dingerva" and "Dingbra" are one person misheard by Wispr, and the right
+fix is at the input, in Wispr's personal dictionary, not in organiser logic. Worth knowing: the dry
+run did link the two from context alone, so the model can do it; it just does not do it reliably.
+
+## Derived decisions, flagged for review
+
+### 2026-09-19 — P20 Randomness is at its minimum (`temperature: 0`) for split and route, only on models that accept it
+A per-model capability table in `lib/model/capabilities.ts`; unknown models get no temperature.
+**Why:** by default the model samples, so identical input gives different plans. Haiku accepts
+`temperature`; Sonnet 5 rejects sampling parameters outright, so sending it there would fail every
+call. This reduces variation; P23 is what guarantees the reviewed plan is the written one.
+
+### 2026-09-19 — P21 A sentence is never split, and a leftover with only one possible home joins it — code, in `completeSplit()`
+**Revises P10**, which said attaching a leftover is always a judgment. It is only a judgment when
+there is more than one candidate. A leftover between two parts of the same item, or at the edge of
+the capture next to a single item, has exactly one home, and code attaches it. A leftover between
+two *different* items stays `unassigned` for the user.
+**Why:** in the real run, four of nine Quick Calls were scraps like "Remember I told you" and
+"? Now I know what to speak to him about." — pieces of sentences the model quoted only in part. The
+guarantee preserved them, but as noise. Both rules only move the user's own text between items;
+nothing is added or lost.
+
+### 2026-09-19 — P22 Stage 2 keeps qualifiers, reasons and examples, and links captures only when the text shows a shared subject
+**Why:** "I need to buy shoes, but I am not sure" became `Shoes`, and "house, then grocery, then
+list" became "a specific location". Nothing was invented, but meaning was lost — the kind of
+dropped information the D3 grader exists to measure. Separately, the misfile linked a product idea to
+a work meeting only because they arrived together. `sure` now requires the item's own words to
+support the destination.
+
+### 2026-09-19 — L1 "Unsure" on a new kind of item is correct behaviour, not something to tune away
+Mum and the dentist went to Quick Calls because no "things to do" note exists yet.
+**Why:** this is the D2 learning loop working as designed. The user answers once, the answer becomes
+a rule (slice 6), and the next such item is `sure`. Prompting the model to be confident about homes
+that do not exist would reintroduce exactly the confident misfiling P22 targets.
+
+## Tooling
+
+### 2026-09-19 — T1 `route:preview` replays any captures, in any status, against either model, and never writes to the vault
+Flags: `--no-notes` routes as if the vault were empty; `--route-model` overrides the Stage 2 model
+for one run.
+**Why:** the first real run marked the seven test captures `processed`, so `--dry` could no longer
+reach them. Tuning prompts and comparing models needs a fixed set of inputs replayed identically,
+without ever touching the vault.
+
+### 2026-09-19 — P19 superseded by P23 — the capture lock lands in 3b.1, not 3c
+`markCaptureProcessed` now also requires `status = 'pending'`, so no path can re-process a capture.

@@ -8,6 +8,8 @@ Keep a list with its introducing sentence and closing remarks. Keep examples wit
 the point they illustrate. Keep corrections and clarifications with what they correct:
 preserve BOTH the original statement and the correction, in order, never just the final version.
 Keep follow-up references like "that one", "the list", and "it" with their referents.
+Filler ("Right, okay,") and questions to yourself ("What else do I need?") belong
+in the neighbouring item they relate to, never in a standalone item.
 Framing sentences are never separate: "I need to buy…", "Speaking of X…", and
 "This is my movie list" belong with the content they introduce.
 Each topic label is a short, lowercase, reusable category of one to four words, like

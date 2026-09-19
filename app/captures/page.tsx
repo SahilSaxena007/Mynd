@@ -40,7 +40,7 @@ function CapturesLog() {
         : captures.length === 0 ? <p>No captures yet.</p> : captures.map((capture) => (
           <article key={capture.id} style={{ borderTop: "1px solid #ccc", padding: "16px 0" }}>
             <time dateTime={capture.capturedAt}>{new Date(capture.capturedAt).toLocaleString()}</time>
-            {" "}<span><span aria-hidden="true" style={{ color: capture.status === "failed" ? "#b22" : capture.status === "processed" ? "#287a35" : "#866000" }}>●</span> {capture.status}</span>
+            {" "}<span><span aria-hidden="true" style={{ color: capture.status === "skipped" ? "#666" : capture.status === "failed" ? "#b22" : capture.status === "processed" ? "#287a35" : "#866000" }}>●</span> {capture.status}</span>
             <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{capture.body}</p>
           </article>
         ))}

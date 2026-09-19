@@ -1,7 +1,7 @@
-import { query } from "./transaction";
+import { query, withTransaction } from "./transaction";
 import type {
   Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
-  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput,
+  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput,
 } from "./types";
 
 export { withTransaction } from "./transaction";
@@ -25,9 +25,40 @@ export async function insertCapture(input: CaptureInput): Promise<Capture> {
   return result.rows[0];
 }
 
-export async function getPendingCaptures(): Promise<Capture[]> {
+export async function getPendingCaptures(limit?: number): Promise<Capture[]> {
   return (await query<Capture>(`SELECT ${captureColumns} FROM captures
-    WHERE status = 'pending' ORDER BY captured_at, id`)).rows;
+    WHERE status = 'pending' ORDER BY captured_at, id LIMIT $1`, [limit ?? null])).rows;
+}
+
+export async function skipCaptures(ids: string[]): Promise<number> {
+  if (!ids.length) return 0;
+  return withTransaction(async () => {
+    const unique = [...new Set(ids)];
+    const { rows } = await query<{ id: string; status: string }>(
+      "SELECT id, status FROM captures WHERE id = ANY($1::uuid[]) FOR UPDATE", [unique]);
+    const refused = unique.filter((id) => !rows.some((row) => row.id === id && row.status === "pending"));
+    if (refused.length) throw new Error(`Cannot skip captures that are not pending: ${refused.join(", ")}`);
+    const result = await query("UPDATE captures SET status = 'skipped' WHERE id = ANY($1::uuid[]) AND status = 'pending'", [unique]);
+    return result.rowCount ?? 0;
+  });
+}
+
+export async function getNotesWithBodies(): Promise<Note[]> {
+  return (await query<Note>(`SELECT ${noteColumns} FROM notes ORDER BY created_at, id`)).rows;
+}
+
+const quickCallColumns = `id, capture_id AS "captureId", topic, item_text AS "itemText",
+  options, reason, status, created_at AS "createdAt", resolved_at AS "resolvedAt"`;
+
+export async function insertQuickCall(input: QuickCallInput): Promise<QuickCall> {
+  return (await query<QuickCall>(`INSERT INTO quick_calls (capture_id, topic, item_text, options, reason)
+    VALUES ($1, $2, $3, $4::jsonb, $5) RETURNING ${quickCallColumns}`,
+  [input.captureId, input.topic, input.itemText, JSON.stringify(input.options), input.reason])).rows[0];
+}
+
+export async function listOpenQuickCalls(): Promise<QuickCall[]> {
+  return (await query<QuickCall>(`SELECT ${quickCallColumns} FROM quick_calls
+    WHERE status = 'open' ORDER BY created_at, id`)).rows;
 }
 
 export async function listCaptures(limit = 100): Promise<Capture[]> {

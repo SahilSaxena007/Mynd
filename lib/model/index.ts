@@ -1,4 +1,5 @@
 import Ajv from "ajv";
+import { assertOutsideTransaction } from "../db/transaction";
 import { withModelCallLock } from "../db/model-call-lock";
 import { insertModelCall } from "../db/queries";
 import { requestAnthropic } from "./anthropic";
@@ -22,9 +23,11 @@ const modelEnv: Record<Job, string> = {
 
 export async function complete<T>(input: CompleteInput): Promise<CompleteResult<T>> {
   try {
+    assertOutsideTransaction();
     checkModelBudget(input.maxTokens);
     if (process.env.MODEL_PROVIDER !== "anthropic") throw new Error("MODEL_PROVIDER must be anthropic.");
-    const model = process.env[modelEnv[input.job]]?.trim();
+    const model = (input.job === "route" ? process.env.ROUTE_MODEL?.trim() : undefined)
+      || process.env[modelEnv[input.job]]?.trim();
     if (!model) throw new Error("Model environment setting is required.");
     // Validate configuration and schema before any request can cost money.
     estimateCost(model, { inputTokens: 0, outputTokens: 0, cachedTokens: 0 });
