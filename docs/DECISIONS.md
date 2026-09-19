@@ -862,3 +862,10 @@ own new note.
 **Why:** DM2 says folder behaviour changes by editing its description, but the seed deliberately never
 overwrites an existing one, so there was no way to make that edit. This is a user tool; it changes
 descriptions only and cannot create, rename or move a folder, so F1 holds.
+
+### 2026-09-19 — P24a P24 is applied per digit run, with no exception for zero minutes
+From "at 9", `09:00` is queued `added_detail`: it is two numbers, and the `00` was never said.
+**Why:** raised by Codex, which found that `docs/slice-3b2-spec.md` contradicted itself — its rule
+rejected `09:00` while its test case expected it to pass. The rule wins. "At 9" does not specify 9:00,
+P26 already tells the model to keep times as spoken, and an exception would special-case a rule whose
+value is being exact. The test case was a spec error, now corrected.

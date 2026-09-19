@@ -71,8 +71,9 @@ After Stage 2, before anything is filed, for every placement that would be filed
    `markdown`, and — if the placement targets a *new* note — in that note's `title` and `summary`.
 2. **Collect the numbers the user said**: every run of digits in the verbatim text of the item. For a
    new note's title and summary, the items filed into that note together.
-3. **Normalise both sides** by stripping leading zeros (`09` → `9`, `0` stays `0`), so `9` and `09:00`
-   match. Nothing else is normalised. A number spoken as a word ("twelfth") does not match `12` — that
+3. **Normalise both sides** by stripping leading zeros (`09` → `9`, `00` → `0`), so a written `09`
+   matches a spoken `9`. Every digit run is checked on its own: `09:00` is two numbers, `9` and `0`,
+   and both must have been said. Nothing else is normalised. A number spoken as a word ("twelfth") does not match `12` — that
    is the accepted false alarm, and it errs toward asking the user.
 4. **Any written number not among the said numbers fails the check.**
 5. **One exemption:** the digits of an item's local date (E6) are allowed in the **title** of a note in
@@ -153,7 +154,8 @@ Add to `lib/prompts/route.ts`:
 
 1. From "on the 12th", a block reading "2026-09-12" is queued `added_detail`.
 2. From "on the 12th", a block reading "the 12th" or "12" is filed.
-3. From "at 9", a block reading "09:00" is filed (leading zero).
+3. From "at 9", a block reading "at 9" or "09" is filed (leading zero stripped), but a block reading
+   "09:00" is queued `added_detail` — its `00` was never said. Times stay exactly as spoken (P26).
 4. A Journal note titled with the item's own local date is created; the same digits in a Work note's
    title are caught.
 5. A new note whose title contains an unverified number is not created, and all its placements are
