@@ -85,6 +85,16 @@ export async function getFolderBySlug(slug: string): Promise<Folder | null> {
   return (await query<Folder>(`SELECT ${folderColumns} FROM folders WHERE slug = $1`, [slug])).rows[0] ?? null;
 }
 
+export async function updateFolderDescription(slug: string, description: string) {
+  return withTransaction(async () => {
+    const previous = (await query<Folder>(`SELECT ${folderColumns} FROM folders WHERE slug = $1 FOR UPDATE`, [slug])).rows[0];
+    if (!previous) throw new Error(`Unknown folder slug: ${slug}`);
+    const updated = (await query<Folder>(`UPDATE folders SET description = $2 WHERE slug = $1 RETURNING ${folderColumns}`,
+      [slug, description])).rows[0];
+    return { previous, updated };
+  });
+}
+
 export async function createFolder(input: FolderInput): Promise<Folder> {
   return (await query<Folder>(`INSERT INTO folders (name, slug, description, color, parent_id)
     VALUES ($1, $2, $3, $4, $5) RETURNING ${folderColumns}`,

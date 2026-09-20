@@ -13,6 +13,8 @@ export function formatPreviewError(error: unknown): string {
   }
   const messages = new Set([
     "MODEL_PROVIDER must be anthropic.", "Model environment setting is required.",
+    "ROUTE_THINKING_BUDGET must be 0, or an integer >= 1024 and below route maxTokens.",
+    "Saved plan contains unverified numbers; review a new dry run before applying.",
     "No cost rates configured for the selected model.", "Invalid model token usage.",
     "Model response incomplete or refused.", "Model response did not match the output schema.",
     "Choose --id or --limit, not both.", "--id must be a UUID.",
@@ -23,7 +25,8 @@ export function formatPreviewError(error: unknown): string {
     "Transaction was aborted; no changes were committed.",
   ]);
   const guardMessage = /^Model call refused: (?:active withModelRun required|model run is closed|maxTokens invalid|(?:MAX_TOKENS_PER_CALL|MAX_CALLS_PER_RUN|DAILY_CALL_CAP) (?:missing or invalid|invalid|exceeded|count unavailable))\.$/;
-  if (error instanceof Error && (messages.has(error.message) || guardMessage.test(error.message))) {
+  const incompleteMessage = /^Model response incomplete or refused \(stop_reason: (?:max_tokens|refusal|stop_sequence|tool_use|pause_turn|model_context_window_exceeded|null)\)\.$/;
+  if (error instanceof Error && (messages.has(error.message) || guardMessage.test(error.message) || incompleteMessage.test(error.message))) {
     return `FAIL: ${error.message}`;
   }
   return `FAIL: ${error instanceof Error ? error.name : "UnknownError"}`;

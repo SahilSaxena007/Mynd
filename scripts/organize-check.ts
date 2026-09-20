@@ -14,6 +14,10 @@ import type { Placement, RoutePlan } from "../lib/organizer/route-types";
 import { applyPlan } from "../lib/organizer/stage3-apply";
 import { applySavedRun, savedPlan } from "../lib/organizer";
 import { samplingParameters } from "../lib/model/capabilities";
+import { buildAnthropicRequest } from "../lib/model";
+import { unverifiedNumbers } from "../lib/organizer/numbers";
+import { printPlan } from "../lib/organizer/print";
+import { formatPreviewError } from "../lib/model/errors";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -78,6 +82,112 @@ async function main() {
     assert.deepEqual(result.newNotes, []);
     pass("unused new note declaration removed");
 
+    const numberRefs = (texts: string[], slug = "work") => buildRefs(
+      [{ ...capture, body: texts.join("\n") }], [{ ...folder, slug }], [], [],
+      [texts.map((text) => ({ ...item, quotes: [text] }))], "Europe/London");
+    const numberPlan = (markdown: string, title = "Meeting", summary = "", slug = "work"): RoutePlan => ({
+      new_notes: [{ ref: "X1", folder: slug, title, summary }],
+      placements: [{ ...sure, note: "X1", markdown }],
+    });
+    result = resolveCoverage(numberRefs(["on the 12th"]), numberPlan("2026-09-12"));
+    assert.equal(result.queued[0].reason, "added_detail");
+    assert.deepEqual(result.queued[0].unverifiedNumbers, ["2026", "9"]);
+    assert.equal(result.filed.length, 0);
+    assert.equal(result.newNotes.length, 0);
+    const printed: string[] = [];
+    const previousLog = console.log;
+    try {
+      console.log = (message: string) => { printed.push(message); };
+      printPlan(numberRefs(["on the 12th"]), result, true, 0, 0);
+    } finally { console.log = previousLog; }
+    assert.ok(printed.some((line) => line.includes("Unverified numbers: 2026, 9")));
+    assert.ok(printed.some((line) => line.includes("added_detail 1")));
+    pass("invented full date queues added_detail with unverified numbers");
+
+    for (const markdown of ["the 12th", "12"]) {
+      result = resolveCoverage(numberRefs(["on the 12th"]), numberPlan(markdown));
+      assert.equal(result.filed.length, 1);
+      assert.equal(result.queued.length, 0);
+    }
+    assert.deepEqual(unverifiedNumbers("12", "twelfth"), ["12"]);
+    assert.deepEqual(unverifiedNumbers("123456789012345678901", "123456789012345678900"), ["123456789012345678901"]);
+    pass("said numbers file; words and distinct large digit runs do not match");
+
+    for (const markdown of ["at 9", "09"]) {
+      assert.equal(resolveCoverage(numberRefs(["at 9"]), numberPlan(markdown)).filed.length, 1);
+    }
+    result = resolveCoverage(numberRefs(["at 9"]), numberPlan("09:00"));
+    assert.equal(result.queued[0].reason, "added_detail");
+    assert.deepEqual(result.queued[0].unverifiedNumbers, ["0"]);
+    assert.deepEqual(unverifiedNumbers("09:00", "9 0"), []);
+    pass("leading zeros normalize independently; unsaid zero minutes queue");
+
+    const journal = numberRefs(["a good day"], "journal");
+    const ownDate = journal.items[0].date;
+    result = resolveCoverage(journal, numberPlan("a good day", ownDate, "", "journal"));
+    assert.equal(result.newNotes.length, 1);
+    for (const [run, plan] of [
+      [numberRefs(["a good day"]), numberPlan("a good day", ownDate)],
+      [journal, numberPlan(ownDate, ownDate, "", "journal")],
+      [journal, numberPlan("a good day", ownDate, ownDate, "journal")],
+      [journal, numberPlan("a good day", `Journal ${ownDate}`, "", "journal")],
+      [journal, numberPlan("a good day", "2026-07-16", "", "journal")],
+    ] as const) {
+      result = resolveCoverage(run, plan);
+      assert.equal(result.newNotes.length, 0);
+      assert.equal(result.queued[0].reason, "added_detail");
+    }
+    pass("only exact own-date Journal titles exempt; bodies, summaries and Work titles checked");
+
+    const together = numberRefs(["on the 12th", "at 9"]);
+    const togetherPlan = numberPlan("the 12th", "Meeting 2026");
+    togetherPlan.placements.push({ ...sure, item: "I2", note: "X1", markdown: "at 9" });
+    togetherPlan.placements[0].options = [{ label: "Work", folder: "work", note: "", new_note_title: "Meeting", new_folder_name: "" }];
+    for (const field of ["title", "summary"] as const) {
+      togetherPlan.new_notes[0] = { ref: "X1", folder: "work", title: "Meeting", summary: "", [field]: "Meeting 2026" };
+      result = resolveCoverage(together, togetherPlan);
+      assert.equal(result.newNotes.length, 0);
+      assert.equal(result.filed.length, 0);
+      assert.equal(result.queued.length, 2);
+      assert.ok(result.queued.every((call) => call.reason === "added_detail"));
+      assert.deepEqual(result.queued[0].options, togetherPlan.placements[0].options);
+    }
+    togetherPlan.new_notes[0] = { ref: "X1", folder: "work", title: "Meeting 12", summary: "at 9" };
+    assert.equal(resolveCoverage(together, togetherPlan).filed.length, 2);
+    togetherPlan.placements[1].markdown = "09:00";
+    result = resolveCoverage(together, togetherPlan);
+    assert.equal(result.filed.length, 0); // Rejected blocks cannot supply metadata numbers.
+    assert.equal(result.queued.length, 2);
+    assert.equal(result.newNotes.length, 0);
+    assert.equal(resolveCoverage(refs, { ...empty, placements: [{ ...sure, markdown: "milk 2" }] }).queued[0].reason, "added_detail");
+    pass("unverified new-note metadata queues all placements, retaining options; only filed items supply numbers");
+
+    const routeInput = { job: "route" as const, system: "test", user: "test", schema: { type: "object" }, maxTokens: 8000 };
+    for (const budget of ["500", "1023", "8000", "9000", "-1", "NaN", "", "1.5", "Infinity", "2048x"]) {
+      assert.throws(() => buildAnthropicRequest(routeInput, "claude-haiku-4-5", budget), /ROUTE_THINKING_BUDGET/);
+    }
+    for (const budget of [undefined, "1024", "2048", "7999"]) {
+      const request = buildAnthropicRequest(routeInput, "claude-haiku-4-5", budget);
+      assert.ok(!Object.hasOwn(request, "temperature"));
+      assert.deepEqual(request.thinking, { type: "enabled", budget_tokens: Number(budget ?? 2048) });
+      assert.equal(request.max_tokens, 8000);
+    }
+    const off = buildAnthropicRequest(routeInput, "claude-haiku-4-5", "0");
+    assert.equal(off.temperature, 0);
+    assert.ok(!Object.hasOwn(off, "thinking"));
+    const split = buildAnthropicRequest({ ...routeInput, job: "split" }, "claude-haiku-4-5", "500");
+    assert.equal(split.temperature, 0);
+    assert.ok(!Object.hasOwn(split, "thinking"));
+    assert.throws(() => buildAnthropicRequest(routeInput, "claude-sonnet-5", "0"), /unsupported/);
+    assert.throws(() => buildAnthropicRequest({ ...routeInput, maxTokens: 2048 }, "claude-haiku-4-5"), /ROUTE_THINKING_BUDGET/);
+    assert.equal(requests, 0);
+    pass("pure request builder refuses invalid budgets, omits temperature with thinking, keeps split unchanged");
+    for (const reason of ["max_tokens", "refusal", "stop_sequence", "tool_use", "pause_turn", "model_context_window_exceeded", "null"]) {
+      const message = `Model response incomplete or refused (stop_reason: ${reason}).`;
+      assert.equal(formatPreviewError(new Error(message)), `FAIL: ${message}`);
+    }
+    assert.equal(formatPreviewError(new Error("Model response incomplete or refused (stop_reason: private capture text).")), "FAIL: Error");
+
     await withOrganizeCheckSchema(async () => {
       const first = await insertCapture({ body: "buy milk", capturedAt: date });
       const second = await insertCapture({ body: "buy milk", capturedAt: date });
@@ -130,6 +240,29 @@ async function main() {
     const directory = await mkdtemp(join(tmpdir(), "mynd-apply-check-"));
     try {
       await withOrganizeCheckSchema(async () => {
+        const stored = await insertCapture({ body: "on the 12th", capturedAt: date });
+        const area = await createFolder({ name: "Work", slug: "work" });
+        const run = buildRefs([stored], [area], [], [],
+          [[{ ...item, quotes: [stored.body] }]], "Europe/London");
+        const plan = resolveCoverage(run, numberPlan("2026-09-12"));
+        const file = join(directory, "added-detail.json");
+        const saved = savedPlan(run, plan);
+        const legacyPlan = { newNotes: numberPlan("2026-09-12").new_notes,
+          filed: [{ item: run.items[0], note: "X1", markdown: "2026-09-12" }], queued: [] };
+        assert.throws(() => savedPlan(run, legacyPlan), /unverified numbers/);
+        await writeFile(file, JSON.stringify({ ...saved, plan: legacyPlan }));
+        await assert.rejects(applySavedRun(file, directory), /unverified numbers/);
+        assert.deepEqual(await organizeRowCounts(), { notes: 0, sources: 0, calls: 0, modelCalls: 0 });
+        assert.deepEqual(await getPendingCaptures(), [stored]);
+        await writeFile(file, JSON.stringify(saved));
+        assert.deepEqual(await applySavedRun(file, directory), plan);
+        const calls = await listOpenQuickCalls();
+        assert.equal(calls[0].reason, "added_detail");
+        assert.equal(calls[0].itemText, stored.body);
+        assert.deepEqual(await organizeRowCounts(), { notes: 0, sources: 0, calls: 1, modelCalls: 0 });
+        pass("saved added_detail queues apply without creating notes or making model calls");
+      });
+      await withOrganizeCheckSchema(async () => {
         const stored = await insertCapture({ body: "buy milk", capturedAt: date });
         const area = await createFolder({ name: "Personal", slug: "personal" });
         const existing = await createNote({ folderId: area.id, title: "existing", body: "original bytes" });
@@ -151,11 +284,12 @@ async function main() {
         assert.equal(calls[0].itemText, plan.queued[0].itemText);
         assert.equal(calls[0].reason, plan.queued[0].reason);
         assert.deepEqual(await organizeRowCounts(), { notes: 2, sources: 2, calls: 1, modelCalls: 0 });
-        const records = await Promise.all((await readdir(directory)).filter((name) => name !== "dry.json")
+        const records = await Promise.all((await readdir(directory)).filter((name) => name !== "dry.json" && name !== "added-detail.json")
           .map(async (name) => JSON.parse(await readFile(join(directory, name), "utf8"))));
-        assert.equal(records.length, 1);
-        assert.equal(records[0].appliedFrom, file);
-        assert.equal(records[0].modelCalls, 0);
+        assert.equal(records.length, 2);
+        const appliedRecords = records.filter((record) => record.appliedFrom === file);
+        assert.equal(appliedRecords.length, 1);
+        assert.equal(appliedRecords[0].modelCalls, 0);
         pass("saved dry run writes exact reviewed blocks and queues with zero model calls");
 
         const before = await organizeRowCounts();
@@ -209,7 +343,7 @@ async function main() {
     for (const file of await readdir(join(process.cwd(), "lib/organizer"))) {
       if (file.endsWith(".ts")) assert.ok(!(await readFile(join(process.cwd(), "lib/organizer", file), "utf8")).includes("createFolder"), file);
     }
-    console.log("12/12 cases passed; capability gating verified; no organizer folder creation; zero model calls.");
+    console.log(`${passed}/${passed} cases passed; capability gating verified; no organizer folder creation; zero model calls.`);
   } catch (error) {
     console.error(error); process.exitCode = 1;
   } finally { globalThis.fetch = previousFetch; await closeDb(); }

@@ -13,9 +13,10 @@ export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, input
   }
   for (const call of plan.queued) {
     console.log(`\nQUICK CALL ${call.item} [${call.reason}] ${call.itemText}`);
+    if (call.unverifiedNumbers?.length) console.log(`  Unverified numbers: ${call.unverifiedNumbers.join(", ")}`);
     for (const option of call.options) console.log(`  ${JSON.stringify(option)}`);
   }
-  const counts = ["unsure", "invalid_target", "not_placed"].map((reason) =>
+  const counts = ["unsure", "invalid_target", "not_placed", "added_detail"].map((reason) =>
     `${reason} ${plan.queued.filter((call) => call.reason === reason).length}`).join(", ");
   const appended = new Set(plan.filed.filter((entry) => refs.notes.has(entry.note)).map((entry) => entry.note)).size;
   console.log(`\nitems ${refs.items.length} | filed ${plan.filed.length} | queued ${plan.queued.length} (${counts})`);

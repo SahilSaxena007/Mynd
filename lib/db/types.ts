@@ -75,7 +75,7 @@ export type QuickCallOption = {
 };
 export type QuickCallInput = {
   captureId: string; topic: string; itemText: string; options: QuickCallOption[];
-  reason: "unsure" | "invalid_target" | "not_placed";
+  reason: "unsure" | "invalid_target" | "not_placed" | "added_detail";
 };
 export type QuickCall = QuickCallInput & {
   id: string; status: "open" | "resolved"; createdAt: Date; resolvedAt: Date | null;

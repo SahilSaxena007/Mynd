@@ -5,6 +5,7 @@ import Ajv from "ajv";
 import type { Folder, Note } from "../db/types";
 import { withModelRun } from "../model";
 import { estimateCost } from "../model/cost";
+import { routeParameters } from "../model/capabilities";
 import { formatPreviewError } from "../model/errors";
 import { routePrompt } from "../prompts/route";
 import { splitPrompt } from "../prompts/split";
@@ -21,8 +22,21 @@ type SavedRefs = Omit<RunRefs, "folders" | "notes" | "newNoteRefs"> & {
   notes: [string, Note][];
   newNoteRefs: string[];
 };
+
+function assertSavedNumbers(refs: RunRefs, plan: ResolvedPlan) {
+  // Older reviewed files predate the number gate. Refuse them rather than changing
+  // the reviewed plan or letting --apply bypass the current guarantee.
+  const checked = resolveCoverage(refs, { new_notes: plan.newNotes,
+    placements: plan.filed.map((entry) => ({ item: entry.item.ref, note: entry.note,
+      markdown: entry.markdown, confidence: "sure", options: [] })) });
+  if (checked.filed.length !== plan.filed.length) {
+    throw new Error("Saved plan contains unverified numbers; review a new dry run before applying.");
+  }
+}
+
 export function savedPlan(refs: RunRefs, plan: ResolvedPlan) {
   assertResolvedPlan(refs, plan);
+  assertSavedNumbers(refs, plan);
   return { version: 1, dry: true, plan, refs: { ...refs,
     folders: [...refs.folders], notes: [...refs.notes], newNoteRefs: [...refs.newNoteRefs] } };
 }
@@ -46,7 +60,7 @@ const validateSaved = new Ajv({ strict: true }).compile<{ version: number; dry: 
       newNotes: array(object(strings(["ref", "folder", "title", "summary"]))),
       filed: array(object({ item: itemSchema, ...strings(["note", "markdown"]) })),
       queued: array(object({ ...strings(["item", "captureId", "topic", "itemText"]),
-        reason: { enum: ["unsure", "invalid_target", "not_placed"] },
+        reason: { enum: ["unsure", "invalid_target", "not_placed", "added_detail"] },
         options: { ...array(object(strings(["label", "folder", "note", "new_note_title", "new_folder_name"]))), maxItems: 3 },
       })),
     }),
@@ -72,6 +86,7 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
     throw new Error("Invalid saved reference map.");
   }
   assertResolvedPlan(refs, data.plan);
+  assertSavedNumbers(refs, data.plan);
   const plan = await applyPlan(refs, data.plan, true);
   await saveRunRecord({ startedAt: new Date().toISOString(), dry: false, applied: true,
     appliedFrom: resolve(file), plan, refs: raw, modelCalls: 0, cost: 0 }, directory);
@@ -91,6 +106,8 @@ export async function runOrganize({ dry = false, limit = 10 }: { dry?: boolean; 
   if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("--limit must be a positive integer.");
   const context = await gatherForOrganize(Math.min(limit, 10));
   if (!context.captures.length) { console.log("No pending captures. No model calls."); return; }
+  routeParameters(process.env.ROUTE_MODEL?.trim() || process.env.ORGANIZE_MODEL?.trim() || "",
+    8000, process.env.ROUTE_THINKING_BUDGET); // Refuse bad route settings before spending on split.
   const timezone = process.env.USER_TIMEZONE;
   localDate(context.captures[0].capturedAt, timezone); // Fail closed before spending.
   const startedAt = new Date().toISOString();

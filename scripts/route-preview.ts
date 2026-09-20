@@ -4,6 +4,7 @@ import { closeDb } from "../lib/db/client";
 import { getCapturesByIds, getNotesWithBodies, listActiveRules, listFolders } from "../lib/db/queries";
 import { withModelRun } from "../lib/model";
 import { estimateCost } from "../lib/model/cost";
+import { routeParameters } from "../lib/model/capabilities";
 import { formatPreviewError } from "../lib/model/errors";
 import { resolveCoverage } from "../lib/organizer/coverage";
 import { saveRunRecord } from "../lib/organizer";
@@ -15,9 +16,11 @@ import { routeItems } from "../lib/organizer/stage2-route";
 async function main() {
   loadEnvConfig(process.cwd());
   const previousModel = process.env.ROUTE_MODEL;
+  const previousBudget = process.env.ROUTE_THINKING_BUDGET;
   try {
     const { values, positionals } = parseArgs({ allowPositionals: true, options: {
       ids: { type: "boolean" }, "no-notes": { type: "boolean" }, "route-model": { type: "string" },
+      "thinking-budget": { type: "string" },
     } });
     const ids = [...new Set(positionals.map((id) => id.toLowerCase()))];
     if (!values.ids || !ids.length || ids.some((id) => !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/.test(id))) {
@@ -26,6 +29,8 @@ async function main() {
     const model = values["route-model"] ?? process.env.ROUTE_MODEL ?? process.env.ORGANIZE_MODEL ?? "";
     estimateCost(model, { inputTokens: 0, outputTokens: 0, cachedTokens: 0 });
     process.env.ROUTE_MODEL = model;
+    if (values["thinking-budget"] !== undefined) process.env.ROUTE_THINKING_BUDGET = values["thinking-budget"];
+    routeParameters(model, 8000, process.env.ROUTE_THINKING_BUDGET);
     const [captures, folders, notes, rules] = await Promise.all([
       getCapturesByIds(ids), listFolders(), values["no-notes"] ? Promise.resolve([]) : getNotesWithBodies(), listActiveRules(),
     ]);
@@ -52,6 +57,8 @@ async function main() {
   } finally {
     if (previousModel === undefined) delete process.env.ROUTE_MODEL;
     else process.env.ROUTE_MODEL = previousModel;
+    if (previousBudget === undefined) delete process.env.ROUTE_THINKING_BUDGET;
+    else process.env.ROUTE_THINKING_BUDGET = previousBudget;
     await closeDb();
   }
 }

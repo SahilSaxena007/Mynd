@@ -11,6 +11,7 @@
     "db:check": "tsx scripts/check-db.ts",
     "db:migrate": "tsx scripts/db-setup.ts migrate",
     "db:seed": "tsx scripts/db-setup.ts seed",
+    "folders:describe": "tsx scripts/folders-describe.ts",
     "smoke": "tsx scripts/smoke.ts",
     "smoke:capture": "tsx scripts/smoke-capture.ts",
     "split:preview": "tsx scripts/split-preview.ts",

@@ -8,6 +8,13 @@ note in an existing folder, using only an available_new_note_refs reference, onc
 Use only the supplied item, note, and folder references. Never copy or invent UUIDs.
 Follow each folder's GROUPING rule. Journal has one note per calendar day, titled by
 the item's supplied local date YYYY-MM-DD; same-day entries append.
+Actions go to Tasks; reflections go to Journal, following each folder's description.
+Keep dates and times exactly as spoken: "on the 12th", "next week", and "Sunday"
+stay as said. Never resolve a partial or relative date into a full date. Code rejects
+any written digit run absent from the source item, except the exact Journal date title.
+One theme per note: never merge two different ideas. If a title would need "and"
+to join two themes, it is two notes. Items from the same capture that continue one
+line of thought go to the same note; a continuing thought stays together.
 Link across captures only when their own words show they share a subject. Arriving
 in the same run or near each other is never a reason to put items in the same note.
 An idea about the product is not an agenda item for a work meeting unless the user
