@@ -933,3 +933,32 @@ Recorded from the 2026-09-20 replay (`.runs/2026-09-20T13-27-11…json`), in ord
 5. **A Quick Call offered one option**, where D2 asks for two or three.
 6. **Cost per run rose** from $0.019 to $0.033 with a 2,048-token thinking budget — about $2/month at
    two runs a day. Acceptable, and worth re-measuring if the budget changes.
+
+---
+
+# 2026-09-20 — Deploy inserted before slice 4
+
+### 2026-09-20 — B10 Deploy to Railway before slice 4; then slice 4, then 3c
+Spec: `docs/slice-deploy-spec.md`.
+**Why:** capture only worked while the laptop was awake running `npm run dev` with the phone on the
+same Wi-Fi, so a thought on the train was simply lost. B7 banked the organiser-quality work in order
+to build a real corpus, and that corpus cannot grow until capture works anywhere. Deploying also gives
+3c's cron somewhere to run that is not the laptop, and brings HTTPS, without which the app cannot be
+installed to a home screen (B3). (Considered and rejected: slice 4 first, which shows the vault sooner
+but leaves capture laptop-bound; and 3c as a local cron, which automates the one thing already
+triggerable by hand while solving neither problem.)
+
+### 2026-09-20 — SEC1 The `SECRET_TOKEN` is regenerated as part of deploying
+**Why:** the current value was pasted into a planning conversation on 2026-09-17 via an editor
+selection, so it exists in that transcript. It is acceptable as a local-development lock and
+unacceptable as the only lock on a public URL (S7).
+
+### 2026-09-20 — SEC2 `/api/health` is the one unauthenticated endpoint, and returns only `{"ok":true}`
+**Why:** the platform needs to know whether the app is alive, and a healthcheck that cannot be reached
+without a token is useless. Because it is the only open door, it must be incapable of leaking
+anything: no counts, no versions, no configuration, no database read.
+
+### 2026-09-20 — SEC3 Vault screens fetch their data from the browser with the token, never during server render
+**Why:** the token gate is client-side (S8), so a server component that read the database while
+rendering would hand notes to anyone who opened the public URL. Slice 2 already works this way; slice 4
+must keep to it. This is the most likely way a later slice could quietly undo S7.
