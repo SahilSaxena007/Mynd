@@ -869,3 +869,32 @@ From "at 9", `09:00` is queued `added_detail`: it is two numbers, and the `00` w
 rejected `09:00` while its test case expected it to pass. The rule wins. "At 9" does not specify 9:00,
 P26 already tells the model to keep times as spoken, and an exception would special-case a rule whose
 value is being exact. The test case was a spec error, now corrected.
+
+---
+
+# 2026-09-20 — Slice 3b.2 reviewed; sequencing corrected
+
+## Build order (continued)
+
+### 2026-09-20 — B7 Stop revising organiser quality after 3b.2; ship 3c, 4 and 5 before tuning again
+**Why:** the human asked for a recap because they were losing track, and the recap showed the drift:
+three revisions deep in slice 3b, tuning filing quality against **seven** test captures, while the
+vault still has no screens. Two reasons that ordering is backwards — organiser quality has no finish
+line and needs fifty real captures to tune honestly, and that corpus only appears once the app is
+rewarding to open, which is slice 4. The mess already in the vault (one misfiled line, nine open
+Quick Calls) also cannot be cleaned until slices 4 and 6 exist. Revisit organiser quality once there
+is a real corpus.
+
+### 2026-09-20 — B8 Slice 3b.2 passes its free checks; the real-data replay is the remaining gate
+12 split cases and 19 organize cases, zero model calls, typecheck and lint clean. Beyond the spec,
+routing on a non-budget model now fails fast rather than spending — which would have caught the
+Sonnet failure for free.
+
+## Process (continued)
+
+### 2026-09-20 — PR3 `docs/STATE.md` holds the one-page picture; `DECISIONS.md` stays the full history
+Rewritten at the end of each session: what works, what is next, what is in the vault, known issues,
+commands.
+**Why:** the decision log passed a hundred entries and stopped being readable as a status report. A
+human returning after a break, or a fresh session, needs the picture in thirty seconds and the
+history only when a specific decision is in question.
