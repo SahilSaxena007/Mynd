@@ -45,6 +45,60 @@ Next.js loads `.env` automatically; the standalone connection check uses `@next/
 before opening the pool. Database credentials are never printed by the check.
 All SQL stays in `lib/db/`. There is no ORM.
 
+## Deploy
+
+The repository configuration for Railway is in `railway.json`: build with
+`npm ci && npm run build`, start with `npm start`, and check `/api/health`.
+Node.js must be 20.9 or newer. The health endpoint is unauthenticated and returns
+only `{"ok":true}`; it does not read the database or expose configuration.
+Migrations never run on deploy. Schema changes remain a deliberate local
+`npm run db:migrate` command (E3).
+
+Complete these steps manually, following [the deploy spec](docs/slice-deploy-spec.md):
+
+1. Generate a fresh `SECRET_TOKEN` before deploying (SEC1). The old development
+   token was exposed in a planning conversation and must not protect the public app:
+
+   ```sh
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+   Use the new value on Railway and in local `.env` so they match.
+2. In Railway's dashboard, create a service in the existing Postgres project from
+   GitHub repo `SahilSaxena007/Mynd`, branch `main`. Pushes to `main` then deploy
+   automatically.
+3. Set all of these service variables:
+
+   | Variable | Value |
+   |---|---|
+   | `DATABASE_URL` | Internal Postgres URL (`…@postgres.railway.internal:5432/…`) |
+   | `SECRET_TOKEN` | Newly generated token |
+   | `ANTHROPIC_API_KEY` | Existing provider key |
+   | `MODEL_PROVIDER` | `anthropic` |
+   | `ORGANIZE_MODEL` | `claude-haiku-4-5` |
+   | `ANSWER_MODEL` | `claude-sonnet-5` |
+   | `GRADER_MODEL` | `claude-haiku-4-5` |
+   | `MAX_TOKENS_PER_CALL` | `8000` |
+   | `MAX_CALLS_PER_RUN` | `50` |
+   | `DAILY_CALL_CAP` | `500` |
+   | `USER_TIMEZONE` | `Europe/London` |
+   | `ROUTE_THINKING_BUDGET` | `2048` |
+
+   Leave `ROUTE_MODEL` unset. Routing refuses a model without budgeted thinking.
+4. Generate a domain for the service; that HTTPS URL is Mynd.
+5. Keep local `.env` using the public database URL. The internal hostname resolves
+   only inside Railway; both environments use the same database.
+
+After deployment, verify `/api/health` returns exactly `{"ok":true}`. On the phone
+with Wi-Fi off, unlock with the new token, dictate and send a thought, and confirm
+the box clears and Captures shows it as `pending`. Repeat with the laptop closed.
+Confirm the old token fails, `npm run vault:print` locally shows the same vault,
+and a subsequent push to `main` redeploys. Record the live URL and off-Wi-Fi result
+in `docs/STATE.md` only after verification.
+
+Organising remains a manual local command until slice 3c. Vault screens in slice 4
+must fetch data from the browser with the token, never during server render (SEC3).
+
 ## Slice 1 database layer
 
 `lib/db/schema.sql` contains the five vault tables plus the slice-3a `model_calls`

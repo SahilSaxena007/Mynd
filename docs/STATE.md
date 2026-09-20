@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (100+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-20, after slice 3b.2.
+**Last updated:** 2026-09-20, deploy repository changes prepared after slice 3b.2.
 
 ---
 
@@ -11,7 +11,7 @@ history (100+ dated entries); this page is just the picture.
 
 | Path | Status |
 |---|---|
-| **1. Capture** — dictate a thought, it saves | ✅ works, on phone and laptop |
+| **1. Capture** — dictate a thought, it saves | ✅ works locally, on phone and laptop over Wi-Fi; off-Wi-Fi verification pending |
 | **2. Organise** — files each thought into the vault | ✅ works, run by hand from the terminal |
 | **3. View & Ask** — browse the vault, ask it questions | ❌ not built (slice 4 and 5) |
 
@@ -23,8 +23,16 @@ Done: **1** schema · **2** capture · **3a** model layer, spend guard, split ·
 topic, with code proving no loss and no invention · **3b** route and write · **3b.1** apply the
 reviewed plan · **3b.2** no invented numbers, Tasks area, thinking while routing.
 
-Next: **3c** cron → **4** vault and note screens → **5** ask → **6** Quick Calls and the learning
-loop → **7** grader.
+Deploy repository work is prepared: Node engine requirement, explicit Railway build/start
+commands, a public `/api/health` returning only `{"ok":true}`, and README dashboard steps.
+No migrations run on deploy; `npm run db:migrate` remains a deliberate local command.
+
+**Live URL:** pending the human's Railway deployment. **Capture off Wi-Fi, with the laptop
+closed:** not yet verified. Token rotation, service variables, domain generation and the
+manual acceptance checks remain with the human; see `docs/slice-deploy-spec.md`.
+
+Next: **Deploy** (dashboard setup and phone verification) → **4** vault and note screens →
+**3c** cron → **5** ask → **6** Quick Calls and the learning loop → **7** grader (B10).
 
 ## What's in the vault
 
