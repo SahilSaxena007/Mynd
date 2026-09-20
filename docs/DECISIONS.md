@@ -1039,3 +1039,41 @@ actually sends.
 there is no `grep`, and `curl` is an alias for `Invoke-WebRequest` with different flags. The human hit
 four errors in a row on commands that were never going to work. Either write PowerShell, or run the
 check in this terminal, which has a real bash and can reach the live URL itself.
+
+---
+
+# 2026-09-20 — Slice 3c planning (the cron)
+
+Spec: `docs/slice-3c-spec.md`.
+
+### 2026-09-20 — J1 The schedule is a second Railway service that runs the organiser and exits
+Same repo, its own start command (`npm run organize:cron`), cron `0 7,19 * * *` UTC, no domain.
+**Why:** a cron on the laptop only fires when the laptop is awake, which defeats the point. A separate
+service keeps the organiser **off the public surface** entirely — no `POST /api/organize-now`, so
+there is no new door on a URL that anyone can reach. (Considered and rejected: an endpoint plus an
+external trigger, which would later allow an "Organise now" button but adds a public door now.)
+Overlap with a manual run is already safe because the apply transaction locks the captures and
+requires them still pending (P19/P23).
+
+### 2026-09-20 — J2 Blame the capture, not the provider
+A `ModelProviderError` (rate limit, no credit, auth, 5xx) marks nothing and the next run retries. Any
+other failure on one capture marks **that capture** `failed`, and the next run proceeds without it.
+**Why:** P5 stops a run at the first failure, which is right when a human is watching and wrong when
+nobody is: one unusable capture would silently block every future run and the vault would just stop
+filling. Distinguishing the two causes is what makes marking safe — a rate limit is not the capture's
+fault and must never brand it. Marking then stopping (rather than continuing through the batch) avoids
+weakening the spend guard, which refuses every later call in a run after a failure; the cost is at most
+one run's delay. A `failed` capture is not deleted and not hidden: it shows in the Captures log with
+its text intact (CAP4, DM1).
+
+### 2026-09-20 — DM11 An `organize_runs` table records every run, written outside the apply transaction
+Trigger, status, counts, cost, the blamed capture if any, and a short operational error string.
+**Why:** an unattended organiser that quietly stops is the worst failure mode available — you would
+notice weeks later, having assumed your thoughts were being filed. The record is written outside the
+transaction on purpose: a rolled-back run must still leave evidence that it tried, which is precisely
+the case worth seeing. The `error` string holds the stage and the provider status only, never capture
+text, because it is shown on a screen and may reach logs.
+
+### 2026-09-20 — J3 The vault home shows "last organised …" from the newest run record
+**Why:** Railway keeps logs, but nobody goes looking at logs for something they assume is working. One
+line on the screen you already open turns a silent failure into an obvious one.
