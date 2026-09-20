@@ -898,3 +898,38 @@ commands.
 **Why:** the decision log passed a hundred entries and stopped being readable as a status report. A
 human returning after a break, or a fresh session, needs the picture in thirty seconds and the
 history only when a specific decision is in question.
+
+---
+
+# 2026-09-20 — Slice 3b.2 verified on real data
+
+### 2026-09-20 — B9 Slice 3b.2 passes; organiser quality work is banked until there is a real corpus
+Replaying the seven test captures (`--no-notes`, $0.033): **sure rate 92%** against D2's ~90% target,
+one Quick Call out of 13 items, and `added_detail 0 / invalid_target 0 / not_placed 0`. Both gates
+passed: "on the 12th" stayed as spoken instead of becoming an invented 2026-09-12 (P24, P26), and the
+tasks landed in Tasks as checkboxes with "next week" intact (F3, P13). Qualifiers survived — "Shoes,
+but I am not sure", the spiders' reason, the Goodwill Hunting reason.
+**Why banked:** per B7. Every remaining problem is quality, not a broken guarantee.
+
+### 2026-09-20 — O5 Known organiser-quality issues, for the quality pass after slice 5
+Recorded from the 2026-09-20 replay (`.runs/2026-09-20T13-27-11…json`), in order of seriousness:
+
+1. **Two themes in one note (R4).** A Mynd note titled "user involvement in organizing" also held
+   the cable-deduplication and repeatability items from a different capture. The title named only one
+   theme, which hides the merge better than last run's "X and Y" title did. P26's one-theme rule is not
+   holding; the title may need to be the test — if the title cannot honestly cover every item in the
+   note, it is more than one note.
+2. **A conditional became an assertion.** "if the cable has been mentioned before and I've mentioned
+   it again" was written as "The cable has been mentioned before and I've mentioned it again" — a
+   hypothetical rule turned into a claim that it happened. No number is involved, so P24 cannot see
+   it; this is the class of quiet meaning change the D3 grader exists to measure.
+3. **Doubts still dropped selectively.** "I don't know if that's something that we should be doing
+   right now, but…" lost its first clause, while "Shoes, but I am not sure" kept its qualifier in the
+   same run. P22 holds unevenly.
+4. **Conversational asides get filed as content.** "After looking at this example, I could paste the
+   logs of the other ones too" is the user talking to the assistant, and it was filed `sure` into a
+   Mynd note. There is no notion of a capture, or part of one, being conversation rather than
+   material. Worth a product decision, not just a prompt line.
+5. **A Quick Call offered one option**, where D2 asks for two or three.
+6. **Cost per run rose** from $0.019 to $0.033 with a 2,048-token thinking budget — about $2/month at
+   two runs a day. Acceptable, and worth re-measuring if the budget changes.
