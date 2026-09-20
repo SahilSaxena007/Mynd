@@ -987,3 +987,39 @@ automatic selection context, the same way the original leaked on 2026-09-17. It 
 on a public URL holding private notes (S7), so a leaked value matters more than it did locally. The
 durable mitigation is behavioural: never leave that line highlighted, since the editor forwards the
 selection without being asked.
+
+---
+
+# 2026-09-20 — Slice 4 planning (the screens)
+
+Spec: `docs/slice-4-spec.md`.
+
+### 2026-09-20 — UI1 Three screens: vault home → folder → note, navigated by tapping
+**Why:** it mirrors how the vault is actually shaped (six areas, notes inside them) and needs no
+search or filtering to be useful at this size. `GET /api/vault` returns folders and note metadata in
+one call and the folder screen filters in the browser — a second endpoint would buy nothing at tens
+or hundreds of notes.
+
+### 2026-09-20 — UI2 The human may edit a note; the organiser still may not
+Tapping a checkbox and Edit mode both rewrite the note body.
+**Why:** D1 ("never rewrite a note") is a constraint on the *AI*, because a model rewriting prose it
+did not write is how content gets silently lost. The user editing their own note is the opposite —
+it is CP2's correction-not-construction, and it is what finally lets the misfiled line from O3 be
+removed. Captures stay immutable regardless, so the original words are always recoverable.
+
+### 2026-09-20 — UI3 Saving a note carries its last-modified time and is refused on conflict (409)
+**Why:** this is the first code in the project that can overwrite a note instead of appending. The
+organiser appends on its own schedule, so a note left open on the phone could otherwise wipe whatever
+was added while it sat there. The check and the write happen in one transaction, so the race cannot be
+won. On conflict the screen shows the current text rather than choosing for the user.
+
+### 2026-09-20 — UI4 Folder colours fall back to a palette keyed by slug when the column is null
+**Why:** `mynd`, `work`, `personal` and `tasks` were created without colours, and a UI fallback avoids
+inventing another command to set them. The database value always wins, so DM2's principle — folder
+configuration lives in the row — is intact.
+
+### 2026-09-20 — UI5 Mynd is installable, with generated icons rather than committed binaries
+**Why:** B3 deferred the manifest until there was HTTPS and a shell worth installing; deploying
+delivered both. Generating the icon from JSX (`ImageResponse`) keeps binary assets out of the repo and
+means no one has to draw anything. If that proves awkward to wire into the manifest, two small PNGs are
+an acceptable substitute — the requirement is an installable app with a recognisable icon.
