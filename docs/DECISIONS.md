@@ -962,3 +962,15 @@ anything: no counts, no versions, no configuration, no database read.
 **Why:** the token gate is client-side (S8), so a server component that read the database while
 rendering would hand notes to anyone who opened the public URL. Slice 2 already works this way; slice 4
 must keep to it. This is the most likely way a later slice could quietly undo S7.
+
+### 2026-09-20 — E7 Railway builds with `npm install`, not `npm ci`
+**Why:** the first deploy failed — `npm ci` requires `package-lock.json` to match `package.json`
+exactly, and the lock was missing `@emnapi/runtime` and `@emnapi/core`. Those are optional
+dependencies of sharp's wasm variants (sharp arrives with Next 16), and **npm on Windows cannot
+record them**: `npm install` did not add them, and neither did `npm install --os=linux --cpu=x64`.
+Any lock file generated on this machine will keep failing `npm ci` on a Linux container.
+**Trade-off accepted:** `npm ci` reproduces the lock exactly; `npm install` may resolve newer
+versions inside the existing semver ranges at build time. For a single-developer MVP that is a fair
+price for removing a whole class of build failure. Revisit if a build ever breaks from an unexpected
+dependency bump — the fix then is to generate the lock in a Linux container (CI or Docker), not to
+hand-edit it.

@@ -1,6 +1,6 @@
 {
   "build": {
-    "buildCommand": "npm ci && npm run build"
+    "buildCommand": "npm install --no-audit --no-fund && npm run build"
   },
   "deploy": {
     "startCommand": "npm start",
