@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (100+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-20, deploy repository changes prepared after slice 3b.2.
+**Last updated:** 2026-09-20, slice 4 implemented and checked locally; not pushed or deployed.
 
 ---
 
@@ -13,9 +13,14 @@ history (100+ dated entries); this page is just the picture.
 |---|---|
 | **1. Capture** — dictate a thought, it saves | ✅ **live** at the URL below, from any network |
 | **2. Organise** — files each thought into the vault | ✅ works, run by hand from the terminal |
-| **3. View & Ask** — browse the vault, ask it questions | ❌ not built (slice 4 and 5) |
+| **3. View & Ask** — browse the vault, ask it questions | View implemented locally (slice 4); Ask awaits slice 5 |
 
-There are **no screens for the vault yet.** `npm run vault:print` is the only way to see it.
+Slice 4 adds token-gated vault → folder → note screens, Markdown task checkboxes, manual
+editing with transactional conflict checks, and generated install icons. Typecheck, lint,
+and build pass. Local browser checks cover unauthenticated access, icon dimensions,
+navigation, duplicate checkbox lines, failures, and conflicts using mocked note data.
+Live persistence, concurrent database saves, and phone installation still need the spec's
+manual checks after the human pushes. No live notes or `.env` were changed.
 
 ## Slices
 
@@ -31,7 +36,7 @@ No migrations run on deploy; `npm run db:migrate` remains a deliberate local com
 and laptop. Capture works with the laptop closed, so thoughts can be dictated anywhere. Railway
 redeploys on every push to `main`; builds run `npm install` (E7), and no migration runs on deploy.
 
-Next: **Deploy** (dashboard setup and phone verification) → **4** vault and note screens →
+Next: **4** push and live phone verification →
 **3c** cron → **5** ask → **6** Quick Calls and the learning loop → **7** grader (B10).
 
 ## What's in the vault
@@ -48,7 +53,8 @@ Total AI spend since the start: about **$0.29**.
 - **Nothing is invented.** Split output must be verbatim quotes from the capture, and any number
   the organiser writes must be one you said.
 - **The vault is never half-written.** One transaction per run; a failure writes nothing.
-- **Notes are only ever appended to**, never rewritten.
+- **The organiser only appends to notes.** Human edits check the exact last-read timestamp
+  under a row lock before rewriting; conflicts return 409 and the current note.
 - **The organiser cannot create folders.** The capability does not exist on its path.
 - **Nothing ever deletes a capture.** There is no DELETE statement anywhere in the repo.
 - **Spending is capped** per call, per run, and per day, and fails closed if a limit is missing.
@@ -59,7 +65,7 @@ that.
 ## Known issues, waiting on later slices
 
 - One line ("Two prompts instead of one in the organizer") is filed in the wrong note. Fixable by
-  hand once slice 4 adds note editing.
+  hand after deploying slice 4's note editing; this session did not change that note.
 - 9 open Quick Calls, some of them noise. Cleared in slice 6.
 - Organiser quality is tuned against only 7 test captures. It needs 50+ real ones — which means
   using the app daily, which needs slice 4.

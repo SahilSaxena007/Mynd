@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Vault",
+  title: "Mynd",
   description: "A personal second brain.",
 };
+
+export const viewport: Viewport = { themeColor: "#8f6ac4" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

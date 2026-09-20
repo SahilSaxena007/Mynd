@@ -106,8 +106,41 @@ export async function getNoteSummaries(): Promise<NoteSummary[]> {
     FROM notes ORDER BY created_at, id`)).rows;
 }
 
-export async function getNote(id: string): Promise<Note | null> {
-  return (await query<Note>(`SELECT ${noteColumns} FROM notes WHERE id = $1`, [id])).rows[0] ?? null;
+// Preserve microseconds: pg's Date parser truncates the save version to milliseconds.
+const editableNoteColumns = `id, folder_id AS "folderId", title, summary, body,
+  created_at AS "createdAt",
+  to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAt"`;
+type EditableNote = Omit<Note, "updatedAt"> & { updatedAt: string };
+
+export function getNote(id: string): Promise<Note | null>;
+export function getNote(id: string, forEditing: true): Promise<EditableNote | null>;
+export async function getNote(id: string, forEditing = false): Promise<Note | EditableNote | null> {
+  return (await query<Note | EditableNote>(
+    `SELECT ${forEditing ? editableNoteColumns : noteColumns} FROM notes WHERE id = $1`, [id],
+  )).rows[0] ?? null;
+}
+
+export async function updateNoteBody(id: string, body: string, expectedUpdatedAt: string): Promise<
+  | { ok: true; note: EditableNote }
+  | { ok: false; reason: "conflict"; note: EditableNote }
+  | { ok: false; reason: "missing" }
+> {
+  return withTransaction(async () => {
+    const current = (await query<EditableNote>(
+      `SELECT ${editableNoteColumns} FROM notes WHERE id = $1 FOR UPDATE`, [id],
+    )).rows[0];
+    if (!current) return { ok: false, reason: "missing" };
+    if (current.updatedAt !== expectedUpdatedAt) return { ok: false, reason: "conflict", note: current };
+    const note = (await query<EditableNote>(`UPDATE notes
+      SET body = $2, updated_at = clock_timestamp() WHERE id = $1 RETURNING ${editableNoteColumns}`,
+    [id, body])).rows[0];
+    return { ok: true, note };
+  });
+}
+
+export async function countOpenQuickCalls(): Promise<number> {
+  const result = await query<{ count: string }>("SELECT count(*) AS count FROM quick_calls WHERE status = 'open'");
+  return Number(result.rows[0].count);
 }
 
 export async function getVault(): Promise<{ folders: Folder[]; notes: NoteMeta[] }> {
