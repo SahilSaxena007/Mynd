@@ -11,7 +11,7 @@ history (100+ dated entries); this page is just the picture.
 
 | Path | Status |
 |---|---|
-| **1. Capture** — dictate a thought, it saves | ✅ works locally, on phone and laptop over Wi-Fi; off-Wi-Fi verification pending |
+| **1. Capture** — dictate a thought, it saves | ✅ **live** at the URL below, from any network |
 | **2. Organise** — files each thought into the vault | ✅ works, run by hand from the terminal |
 | **3. View & Ask** — browse the vault, ask it questions | ❌ not built (slice 4 and 5) |
 
@@ -27,9 +27,9 @@ Deploy repository work is prepared: Node engine requirement, explicit Railway bu
 commands, a public `/api/health` returning only `{"ok":true}`, and README dashboard steps.
 No migrations run on deploy; `npm run db:migrate` remains a deliberate local command.
 
-**Live URL:** pending the human's Railway deployment. **Capture off Wi-Fi, with the laptop
-closed:** not yet verified. Token rotation, service variables, domain generation and the
-manual acceptance checks remain with the human; see `docs/slice-deploy-spec.md`.
+**Live URL:** https://mynd-production-c3eb.up.railway.app — deployed 2026-09-20, verified on phone
+and laptop. Capture works with the laptop closed, so thoughts can be dictated anywhere. Railway
+redeploys on every push to `main`; builds run `npm install` (E7), and no migration runs on deploy.
 
 Next: **Deploy** (dashboard setup and phone verification) → **4** vault and note screens →
 **3c** cron → **5** ask → **6** Quick Calls and the learning loop → **7** grader (B10).

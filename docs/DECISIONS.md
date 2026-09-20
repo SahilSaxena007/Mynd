@@ -974,3 +974,16 @@ versions inside the existing semver ranges at build time. For a single-developer
 price for removing a whole class of build failure. Revisit if a build ever breaks from an unexpected
 dependency bump — the fix then is to generate the lock in a Linux container (CI or Docker), not to
 hand-edit it.
+
+### 2026-09-20 — B11 Deploy is done: Mynd is live at https://mynd-production-c3eb.up.railway.app
+Verified on phone and laptop. Railway redeploys on every push to `main`.
+**Why it counts as done:** capture no longer depends on the laptop being awake, which is what B7's
+plan needed — the user can now dictate at work and through the day, and the corpus grows on its own.
+Next: slice 4 (vault and note screens), then 3c (cron).
+
+### 2026-09-20 — SEC4 The `SECRET_TOKEN` must be rotated again, and the `.env` token line kept unselected in the editor
+**Why:** the rotated token was sent into the planning conversation on 2026-09-20 by the IDE's
+automatic selection context, the same way the original leaked on 2026-09-17. It is now the only lock
+on a public URL holding private notes (S7), so a leaked value matters more than it did locally. The
+durable mitigation is behavioural: never leave that line highlighted, since the editor forwards the
+selection without being asked.
