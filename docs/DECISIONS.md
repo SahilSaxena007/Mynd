@@ -1023,3 +1023,19 @@ configuration lives in the row — is intact.
 delivered both. Generating the icon from JSX (`ImageResponse`) keeps binary assets out of the repo and
 means no one has to draw anything. If that proves awkward to wire into the manifest, two small PNGs are
 an acceptable substitute — the requirement is an installable app with a recognisable icon.
+
+### 2026-09-20 — B12 Slice 4 is complete and verified on the live site
+Checked against the running app with no token: the public HTML contains no note content — "things to
+buy", "movies to watch", "Dingerva", "Shenzhen", "dentist" and "protein" all absent from 7,780 bytes
+of shell — and `/api/vault`, `/api/captures` and `/api/note/<id>` all return 401. `/api/health`
+returns only `{"ok":true}`; the manifest serves with 192 and 512 icons. The human confirmed the
+screens work on phone and laptop.
+**Why it was checked live rather than read:** SEC3 was the one way this slice could have quietly
+published the vault to the internet, and reading the code is not the same as reading what the server
+actually sends.
+
+### 2026-09-20 — PR4 Terminal commands given to the human must be PowerShell, not bash
+**Why:** two verification commands were handed over as `curl … | grep …`, which fails in PowerShell —
+there is no `grep`, and `curl` is an alias for `Invoke-WebRequest` with different flags. The human hit
+four errors in a row on commands that were never going to work. Either write PowerShell, or run the
+check in this terminal, which has a real bash and can reach the live URL itself.
