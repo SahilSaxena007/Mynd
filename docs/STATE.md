@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (120+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-20, slice 3c implemented and verified locally; live setup pending.
+**Last updated:** 2026-09-21, slice 3c.1 implemented; live verification pending.
 
 **Live URL:** https://mynd-production-c3eb.up.railway.app — works on phone and laptop, on any
 network, with the laptop closed. Installable to the home screen. Railway redeploys on every push to
@@ -16,16 +16,20 @@ network, with the laptop closed. Installable to the home screen. Railway redeplo
 | Path | Status |
 |---|---|
 | **1. Capture** — dictate a thought, it saves | ✅ live, from anywhere |
-| **2. Organise** — files each thought into the vault | ✅ works, but **run by hand** from the terminal |
+| **2. Organise** — files each thought into the vault | Cron service exists; first run truncated, revision 3c.1 prepared locally |
 | **3. View** — browse and edit the vault | ✅ live: folders → notes → a note, tappable checkboxes, Edit mode |
 | **4. Ask** — ask questions of your notes | ❌ not built (slice 5) |
 
-Slice 3c is ready locally: cron entry point, durable run records, capture-specific failure handling,
-and last-run status on the vault home. Typecheck, lint, build, and all 28 organizer checks pass
-(19 existing + eight spec cases + dry-preview regression), with zero model calls.
-No production migration, paid run, push, or deploy was performed; `.env` was not edited.
-Before deploying, run `npm run db:migrate`, configure the second Railway service per the spec and
-README, and complete the live checklist. Until then, production organising remains manual.
+The first cron run hit the 8,000-output-token cap; Railway retries were stopped by setting
+Restart Policy to Never (J5). Slice 3c.1 now requests 16,000 for routing, records thinking tokens,
+and retries only a truncated route once using the oldest half of the already-split batch.
+Omitted captures remain pending. Dry previews still do not change capture status or run records.
+Typecheck, lint, build, and all 34 organizer checks pass (28 existing + six new), with zero
+provider calls. The first check run lost its database connection during cleanup; the full rerun passed.
+No production migration, paid run, push, or deploy was performed in this session; `.env` was not edited.
+Before live testing, run `npm run db:migrate` and set `MAX_TOKENS_PER_CALL=16000` locally and on
+both Railway services. Follow `docs/slice-3c1-spec.md` for the paid preview and cron checks;
+keep Restart Policy Never.
 
 ## Slices
 
@@ -33,7 +37,7 @@ Done: **1** schema · **2** capture · **3a** model layer, spend guard, split ·
 topic, proven lossless in code · **3b** route and write · **3b.1** apply the reviewed plan ·
 **3b.2** no invented numbers, Tasks area, thinking while routing · **deploy** · **4** the screens.
 
-Next: **3c** migration, Railway cron setup and live verification → **5** Ask → **6** Quick Calls
+Next: **3c.1** migration, ceiling configuration and live verification → **5** Ask → **6** Quick Calls
 and the learning loop → **7** grader.
 Banked until there is a real corpus: the organiser-quality pass (B7, O5).
 
@@ -42,7 +46,8 @@ Banked until there is a real corpus: the organiser-quality pass (B7, O5).
 Six fixed areas the organiser can never add to: **Journal · Tasks · Mynd · Work · Personal ·
 Inbox**. At the last check: 5 notes, 9 open Quick Calls, 7 captures filed, 15 skipped.
 
-Total AI spend since the start: about **$0.33**.
+Last recorded AI spend before cron testing: about **$0.33**; the failed cron attempts added spend
+(see the 2026-09-21 decisions). This implementation session made no provider calls.
 
 ## What code guarantees (not the AI)
 
@@ -72,8 +77,8 @@ Still on the AI's honour: not inventing *words* when writing note text. Slice 7'
 - 9 open Quick Calls, some of them noise. Cleared in slice 6.
 - Organiser quality is tuned against only 7 test captures; it needs 50+ real ones, which is why daily
   use matters more than more tuning right now (B7, O5).
-- Production still needs the 3c migration and cron service. The repository's `railway.json` is for
-  the web service; the cron service must not inherit its web start command or HTTP healthcheck.
+- Production needs the 3c.1 thinking-token migration and 16,000-token ceiling on both services.
+  Keep the cron service's Restart Policy Never; complete the live checklist before restoring its schedule.
 
 ## Commands
 

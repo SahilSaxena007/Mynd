@@ -1123,3 +1123,15 @@ left out stay `pending` for the next run.
 default "On Failure" policy reads that exit code and restarts the container — up to ten times on this
 plan — and every attempt is a real, paid organise run. A single genuine failure became several in
 twenty minutes. One attempt per schedule, then wait, is the whole intent of J2.
+
+### 2026-09-21 — B13 The cron works: nine captures organised unattended
+Run records: `19:36 failed (route truncated, $0.056)` → `19:51 ok — 9 processed, 10 filed, 3 queued,
+6 notes created, 1 appended, $0.046` → `19:56 nothing_pending, $0.000`. The vault went from 5 notes to
+11; `mynd` grew from 1 to 6 and the first `tasks` note appeared. Path 2 is closed: thoughts dictated at
+work filed themselves with no terminal involved.
+**The caveat worth recording:** the successful run was one of Railway's restart-policy retries, which
+J5 has now disabled. It succeeded by chance — routing runs with thinking and is therefore sampled
+(P25), so the second attempt produced a shorter plan that happened to fit under the 8,000-token
+ceiling. With Restart Policy correctly set to Never, that first failure would have stood and nothing
+would have been organised for twelve hours. This makes J4 (halve the batch and retry once, in-run, only
+on truncation) the deliberate replacement for blind container restarts, rather than a nicety.
