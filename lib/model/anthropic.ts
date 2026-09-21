@@ -3,6 +3,15 @@ import type { CompleteInput } from "./index";
 import { ModelProviderError } from "./errors";
 import { routeParameters, samplingParameters } from "./capabilities";
 
+export function anthropicUsage(usage: {
+  input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null;
+  output_tokens_details?: { thinking_tokens?: number | null } | null;
+}) {
+  return { inputTokens: usage.input_tokens, outputTokens: usage.output_tokens,
+    cachedTokens: usage.cache_read_input_tokens ?? 0,
+    thinkingTokens: usage.output_tokens_details?.thinking_tokens ?? 0 };
+}
+
 // Pure request builder; configuration is explicit so checks need no API or env.
 export function buildAnthropicRequest(input: CompleteInput, model: string, routeBudget?: string) {
   const parameters: ReturnType<typeof routeParameters> = input.job === "route"
@@ -26,11 +35,7 @@ export async function requestAnthropic(input: CompleteInput, model: string) {
     return {
       text: response.content.filter((block) => block.type === "text").map((block) => block.text).join(""),
       stopReason: response.stop_reason,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        cachedTokens: response.usage.cache_read_input_tokens ?? 0,
-      },
+      usage: anthropicUsage(response.usage),
     };
   } catch (error) {
     if (error instanceof Anthropic.APIError) {

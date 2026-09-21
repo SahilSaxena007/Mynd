@@ -19,6 +19,7 @@ import { unverifiedNumbers } from "../lib/organizer/numbers";
 import { printPlan } from "../lib/organizer/print";
 import { formatPreviewError } from "../lib/model/errors";
 import { checkOrganizeRuns } from "./organize-run-check";
+import { checkOrganizeRetry } from "./organize-retry-check";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -333,6 +334,7 @@ async function main() {
     } finally { await rm(directory, { recursive: true, force: true }); }
 
     await checkOrganizeRuns(pass);
+    await checkOrganizeRetry(pass);
 
     for (const job of ["split", "route"]) {
       assert.deepEqual(samplingParameters("claude-haiku-4-5", job), { temperature: 0 });

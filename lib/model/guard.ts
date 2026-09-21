@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { countModelCallsToday } from "../db/queries";
 
-type Run = { calls: number; costUsd: number; active: boolean; stopped: boolean };
+type Run = { calls: number; costUsd: number; active: boolean; stopped: boolean; routeTruncated: boolean };
 const runs = new AsyncLocalStorage<Run>();
 
 function refuse(limit: string): never {
@@ -20,7 +20,7 @@ export async function withModelRun<T>(fn: () => Promise<T>, onCost?: (costUsd: n
     try { return await fn(); }
     finally { onCost?.(existing.costUsd - startCost); }
   }
-  const run: Run = { calls: 0, costUsd: 0, active: true, stopped: false };
+  const run: Run = { calls: 0, costUsd: 0, active: true, stopped: false, routeTruncated: false };
   return runs.run(run, async () => {
     try { return await fn(); }
     finally { run.active = false; onCost?.(run.costUsd); }
@@ -36,6 +36,14 @@ export function recordModelCost(costUsd: number): void {
 export function stopModelRun(): void {
   const run = runs.getStore();
   if (run) run.stopped = true;
+}
+
+// The single J4 exception never reopens a stopped run or resets its call budget.
+export function allowRouteTruncationRetry(): boolean {
+  const run = runs.getStore();
+  if (!run || !run.active || run.stopped || run.routeTruncated) return false;
+  run.routeTruncated = true;
+  return true;
 }
 
 function limit(name: string): number {

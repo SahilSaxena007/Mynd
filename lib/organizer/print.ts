@@ -1,7 +1,7 @@
 import type { RunRefs } from "./refs";
 import type { ResolvedPlan } from "./coverage";
 
-export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number, details = true) {
+export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number, details = true, thinkingTokens = 0) {
   if (details) {
     for (const ref of new Set(plan.filed.map((entry) => entry.note))) {
       const existing = refs.notes.get(ref);
@@ -24,5 +24,5 @@ export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, input
   console.log(`\nitems ${refs.items.length} | filed ${plan.filed.length} | queued ${plan.queued.length} (${counts})`);
   console.log(`sure rate ${refs.items.length ? Math.round(100 * plan.filed.length / refs.items.length) : 0}% (target ~90%)`
     + ` | new notes ${plan.newNotes.length} | appended ${appended} | captures ${dry ? "would process" : "processed"} ${refs.captures.length}`);
-  console.log(`stage 2 input ${inputTokens.toLocaleString("en-GB")} tokens | run cost $${cost.toFixed(6)}`);
+  console.log(`stage 2 input ${inputTokens.toLocaleString("en-GB")} tokens | thinking ${thinkingTokens} tokens | run cost $${cost.toFixed(6)}`);
 }

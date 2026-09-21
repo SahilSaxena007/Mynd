@@ -81,6 +81,7 @@ export type ModelCallInput = {
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
+  thinkingTokens: number;
   estCostUsd: number;
 };
 export type ModelCall = ModelCallInput & { id: string; createdAt: Date };

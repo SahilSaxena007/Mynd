@@ -4,7 +4,8 @@ import { withModelCallLock } from "../db/model-call-lock";
 import { insertModelCall } from "../db/queries";
 import { buildAnthropicRequest, requestAnthropic } from "./anthropic";
 import { estimateCost } from "./cost";
-import { checkModelBudget, guardModelCall, recordModelCost, stopModelRun } from "./guard";
+import { allowRouteTruncationRetry, checkModelBudget, guardModelCall, recordModelCost, stopModelRun } from "./guard";
+import { ModelTruncationError } from "./errors";
 
 export { withModelRun } from "./guard";
 export { buildAnthropicRequest } from "./anthropic";
@@ -14,7 +15,7 @@ export type CompleteInput = {
 };
 export type CompleteResult<T> = {
   data: T;
-  usage: { inputTokens: number; outputTokens: number; cachedTokens: number };
+  usage: { inputTokens: number; outputTokens: number; cachedTokens: number; thinkingTokens: number };
   model: string;
 };
 
@@ -42,13 +43,14 @@ export async function complete<T>(input: CompleteInput): Promise<CompleteResult<
       await insertModelCall({ job: input.job, model, ...response.usage,
         estCostUsd: costUsd });
       // Log billable responses even when a refusal/truncation cannot be used.
+      if (response.stopReason === "max_tokens") throw new ModelTruncationError(model, response.usage);
       if (response.stopReason !== "end_turn") throw new Error(`Model response incomplete or refused (stop_reason: ${response.stopReason}).`);
       const data: unknown = JSON.parse(response.text);
       if (!validate(data)) throw new Error("Model response did not match the output schema.");
       return { data, usage: response.usage, model };
     });
   } catch (error) {
-    stopModelRun();
+    if (!(error instanceof ModelTruncationError && input.job === "route" && allowRouteTruncationRetry())) stopModelRun();
     throw error;
   }
 }

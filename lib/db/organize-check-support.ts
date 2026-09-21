@@ -46,3 +46,10 @@ export async function organizeRowCounts() {
 export async function organizeRunCount(): Promise<number> {
   return (await query<{ count: number }>("SELECT count(*)::int AS count FROM organize_runs")).rows[0].count;
 }
+
+export async function checkModelCallUsage() {
+  return (await query<{ thinkingTokens: number; outputTokens: number; cost: number }>(
+    `SELECT thinking_tokens AS "thinkingTokens", output_tokens AS "outputTokens", est_cost_usd::float8 AS cost
+     FROM model_calls ORDER BY created_at, id`,
+  )).rows;
+}

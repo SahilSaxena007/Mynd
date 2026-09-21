@@ -7,7 +7,7 @@ import { insertOrganizeRun, markCaptureFailed } from "../db/queries";
 import { withModelRun } from "../model";
 import { estimateCost } from "../model/cost";
 import { routeParameters } from "../model/capabilities";
-import { ModelProviderError } from "../model/errors";
+import { ModelProviderError, ModelTruncationError } from "../model/errors";
 import { stopModelRun } from "../model/guard";
 import { routePrompt } from "../prompts/route";
 import { splitPrompt } from "../prompts/split";
@@ -16,7 +16,7 @@ import { buildRefs, localDate, routeInput, type RunRefs } from "./refs";
 import { printPlan } from "./print";
 import { gatherForOrganize } from "./stage0-gather";
 import { splitCapture } from "./stage1-split";
-import { routeItems } from "./stage2-route";
+import { routeItems, ROUTE_MAX_TOKENS } from "./stage2-route";
 import { applyPlan, assertResolvedPlan } from "./stage3-apply";
 import { appliedCounts, newRunRecord, runError, type OrganizeStage } from "./run-record";
 
@@ -129,6 +129,7 @@ export async function runOrganize(
   const splits: Awaited<ReturnType<typeof splitCapture>>[] = [];
   record.splits = splits;
   let stage: OrganizeStage = "configure";
+  let retrySummary = "";
   try {
     if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("--limit must be a positive integer.");
     stage = "gather";
@@ -141,7 +142,7 @@ export async function runOrganize(
     }
     stage = "configure";
     routeParameters(process.env.ROUTE_MODEL?.trim() || process.env.ORGANIZE_MODEL?.trim() || "",
-      8000, process.env.ROUTE_THINKING_BUDGET);
+      ROUTE_MAX_TOKENS, process.env.ROUTE_THINKING_BUDGET);
     const timezone = process.env.USER_TIMEZONE;
     localDate(context.captures[0].capturedAt, timezone);
     return await withModelRun(async () => {
@@ -159,16 +160,36 @@ export async function runOrganize(
         if (trigger === "manual") console.log(`${capture.id}: absorbed spans ${JSON.stringify(splits.at(-1)!.data.absorbedSpans)}`);
       }
       stage = "route";
-      const refs = buildRefs(context.captures, context.folders, context.notes, context.rules,
+      let refs = buildRefs(context.captures, context.folders, context.notes, context.rules,
         splits.map((split) => split.data.items), timezone);
       record.input = routeInput(refs);
-      const route = await stages.routeItems(refs);
+      let route: Awaited<ReturnType<typeof routeItems>>;
+      let truncated: ModelTruncationError | undefined;
+      try {
+        route = await stages.routeItems(refs);
+      } catch (error) {
+        if (!(error instanceof ModelTruncationError) || context.captures.length <= 1) throw error;
+        truncated = error;
+        const count = Math.floor(context.captures.length / 2);
+        retrySummary = `route truncated; retried with ${count} captures`;
+        record.retry = retrySummary;
+        console.log(retrySummary);
+        // Rebuild references from the oldest captures and their existing split results.
+        refs = buildRefs(context.captures.slice(0, count), context.folders, context.notes, context.rules,
+          splits.slice(0, count).map((split) => split.data.items), timezone);
+        record.input = routeInput(refs);
+        // No loop: any error from this second attempt ends the run.
+        route = await stages.routeItems(refs);
+      }
       record.route = route;
       stage = "coverage";
       let plan = resolveCoverage(refs, route.data);
       record.plan = plan;
       if (dry) Object.assign(record, savedPlan(refs, plan));
-      const cost = [...splits, route].reduce((sum, result) => sum + estimateCost(result.model, result.usage), 0);
+      const results = [...splits, ...(truncated ? [truncated] : []), route];
+      const cost = results.reduce((sum, result) => sum + estimateCost(result.model, result.usage), 0);
+      const thinkingTokens = results.reduce((sum, result) => sum + result.usage.thinkingTokens, 0);
+      record.thinkingTokens = thinkingTokens;
       record.cost = cost;
       if (!dry) {
         stage = "apply";
@@ -178,12 +199,13 @@ export async function runOrganize(
       }
       record.applied = !dry;
       run.status = "ok";
-      printPlan(refs, plan, dry, route.usage.inputTokens, cost, trigger === "manual");
+      printPlan(refs, plan, dry, route.usage.inputTokens, cost, trigger === "manual", thinkingTokens);
       return plan;
     }, (cost) => { run.costUsd = cost; });
   } catch (error) {
     run.status = "failed";
     run.error = runError(stage, error);
+    if (retrySummary) run.error = `${retrySummary}; ${run.error}`;
     record.error = run.error;
     // No raw cause: it can contain source text and be printed by a caller.
     throw new Error(run.error);

@@ -16,7 +16,7 @@ import type { RoutePlan } from "../lib/organizer/route-types";
 type Stages = NonNullable<Parameters<typeof runOrganize>[1]>;
 const date = new Date("2026-07-15T22:30:00Z");
 const privateText = "DISTINCTIVE_PRIVATE_CAPTURE_CANARY";
-const usage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
+const usage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0, thinkingTokens: 0 };
 const model = "claude-haiku-4-5";
 const stages: Stages = {
   splitCapture: async (capture) => ({ model, usage,

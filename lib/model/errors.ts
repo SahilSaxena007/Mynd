@@ -1,3 +1,13 @@
+import type { CompleteResult } from "./index";
+
+export class ModelTruncationError extends Error {
+  readonly stopReason = "max_tokens";
+  constructor(public readonly model: string, public readonly usage: CompleteResult<unknown>["usage"]) {
+    super("Model response incomplete or refused (stop_reason: max_tokens).");
+    this.name = "ModelTruncationError";
+  }
+}
+
 export class ModelProviderError extends Error {
   constructor(public readonly status: number | undefined, public readonly type: string, message: string) {
     super(message);

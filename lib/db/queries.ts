@@ -209,9 +209,9 @@ export async function createRule(input: RuleInput): Promise<Rule> {
 
 export async function insertModelCall(input: ModelCallInput): Promise<void> {
   await query(`INSERT INTO model_calls
-    (job, model, input_tokens, output_tokens, cached_tokens, est_cost_usd)
-    VALUES ($1, $2, $3, $4, $5, $6)`,
-  [input.job, input.model, input.inputTokens, input.outputTokens, input.cachedTokens, input.estCostUsd]);
+    (job, model, input_tokens, output_tokens, cached_tokens, est_cost_usd, thinking_tokens)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+  [input.job, input.model, input.inputTokens, input.outputTokens, input.cachedTokens, input.estCostUsd, input.thinkingTokens]);
 }
 
 const todayStart = `(date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`;
