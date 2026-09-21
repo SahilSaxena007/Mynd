@@ -1199,3 +1199,34 @@ UI / mobile / cross-device. These are the parts that make it usable by someone w
 
 **Status:** post-v1. Not to be built into the current slices; recorded so the v1 work does not
 foreclose it.
+
+---
+
+# 2026-09-21 — Slice 5 verified live; UI revision 5.1
+
+### 2026-09-21 — B14 Slice 5 works: R5 holds on real questions
+Four live questions, roughly a cent each. "when is my dentist appointment?" returned **"Not in your
+notes."** — there is a task to *book* the dentist and no time was ever dictated, so inventing one was
+the available failure and it did not happen. "what did I say about the Dingerva meeting?" answered
+with "Meeting on the 12th", keeping the partial date exactly as spoken rather than resolving it (P26).
+A question about an unfiled capture was answered and labelled "Based on an unfiled capture" (A1).
+Citations linked to the right notes and each answer showed its cost.
+**Two things the answers incidentally proved:** the model reads checkbox state correctly ("Extension
+cable, Shenzhen sauce, and Chair are already checked off as done"), and it surfaced "Dual Switch Mouse
+(listed twice)" — the O5 repetition problem appearing in real data rather than in a test.
+
+### 2026-09-21 — A6 An answer truncates and expands in place: one element, two states
+**Why:** the collapsed preview and the full answer were separate blocks, so expanding a row showed the
+same text twice.
+
+### 2026-09-21 — A7 The ask you just made renders expanded; a fresh page load collapses everything
+**Why:** raised by the human — hiding an answer you requested two seconds ago behind a tap is
+backwards. Collapsing is for history, not for what you are currently reading.
+
+### 2026-09-21 — A8 Unanswered asks are stored but not listed
+`GET /api/asks` returns answered asks only; the row is still inserted for every ask. An unanswered
+result shows at ask time as a warning above the history, styled as information rather than an error.
+**Why:** the human asked for unanswered results to stay out of the history list. DM13's reason for
+storing them — they are the record of what the vault could not answer, and the evidence that R5 holds
+— is preserved by keeping the row and changing only what the list displays. A truthful "I don't know"
+is the feature working, so the UI must not dress it as a failure.
