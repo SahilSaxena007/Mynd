@@ -1135,3 +1135,49 @@ J5 has now disabled. It succeeded by chance — routing runs with thinking and i
 ceiling. With Restart Policy correctly set to Never, that first failure would have stood and nothing
 would have been organised for twelve hours. This makes J4 (halve the batch and retry once, in-run, only
 on truncation) the deliberate replacement for blind container restarts, rather than a nicety.
+
+---
+
+# 2026-09-21 — Slice 5 planning (Ask)
+
+Spec: `docs/slice-5-spec.md`.
+
+### 2026-09-21 — A1 Ask sees organised notes and not-yet-filed captures, the latter labelled
+**Why:** as `ARCHITECTURE.md` specified. The organiser runs twice a day, so notes-only would leave a
+thought dictated this morning invisible until tonight — Ask would be behind the user's own thinking.
+Labelling unfiled captures keeps the distinction honest, and the prompt requires an answer resting on
+one to say so.
+
+### 2026-09-21 — A2 The answer job runs on `claude-sonnet-5` with thinking disabled
+**Why:** R5 — never fabricate, say "not in your notes" — is the hardest instruction in the product, so
+it gets the stronger model. But thinking is what made Sonnet cost $0.087 and truncate in 3b.1, and
+answering from supplied sources is careful reading rather than hard reasoning. Thinking off puts a
+question at roughly one to two cents. Sonnet 5 rejects sampling parameters, so no `temperature` is sent
+either. Revisit if answers show sloppy grounding — the lever is one line.
+
+### 2026-09-21 — A3 Ask has its own tab, with a history of recent questions
+Each row shows the question and a trimmed answer, expanding on tap to the full answer and its cited
+notes.
+**Why:** the human asked for the history specifically, and gave the reason — the questions people ask
+are the clearest signal of what they actually want from the vault. Stored questions are also the
+evidence for whether R5 holds in practice: the "not in your notes" rows are the interesting ones.
+
+### 2026-09-21 — A4 Citations are enforced in code: an answer with no valid citation becomes "not in your notes"
+Citations naming a reference code never issued are dropped; if none survive, `answered` is forced to
+false and the answer shown is exactly "Not in your notes."
+**Why:** an answer with no source is indistinguishable from an invented one, so R5 cannot rest on the
+prompt alone. Code cannot verify that an answer *follows* from its sources, but it can verify the
+sources are real and that at least one was used — and it can refuse to display an unsourced answer.
+
+### 2026-09-21 — A5 P24 (no new numbers) is deliberately NOT applied to answers
+**Why:** "You have 3 things left to buy" is a correct answer whose `3` appears in no note. Counting and
+summarising are legitimate in answering, where in note-writing they never were, so the rule that made
+note-writing safe would reject good answers here. Instead the prompt forbids figures the notes do not
+contain, citations are shown so any figure can be checked against its source, and the D3 grader
+(slice 7) is the right place to measure it. Recorded because the temptation to reuse P24 here is
+obvious and wrong.
+
+### 2026-09-21 — DM13 An `asks` table stores every question, answer, citation set and cost
+**Why:** A3 needs the history, and the table doubles as the record of how well R5 holds and what the
+user actually wants to know. Every ask is stored, including unanswered ones. Ask writes nothing else —
+no notes, no folders, no captures — so a question can never change the vault.
