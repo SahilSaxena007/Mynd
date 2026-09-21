@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { clearToken, getToken } from "./token";
-import type { Folder, Note } from "@/lib/db/types";
+import type { Folder, Note, OrganizeRun } from "@/lib/db/types";
 
 export type NoteJSON = Omit<Note, "createdAt" | "updatedAt"> & { createdAt: string; updatedAt: string };
 export type VaultJSON = {
   folders: (Omit<Folder, "createdAt"> & { createdAt: string })[];
   notes: Omit<NoteJSON, "body">[];
   openQuickCalls: number;
+  lastRun: (Omit<OrganizeRun, "startedAt" | "finishedAt"> & { startedAt: string; finishedAt: string }) | null;
 };
 
 export async function vaultFetch(url: string, options: RequestInit = {}) {

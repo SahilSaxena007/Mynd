@@ -18,6 +18,7 @@ import { buildAnthropicRequest } from "../lib/model";
 import { unverifiedNumbers } from "../lib/organizer/numbers";
 import { printPlan } from "../lib/organizer/print";
 import { formatPreviewError } from "../lib/model/errors";
+import { checkOrganizeRuns } from "./organize-run-check";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -35,7 +36,7 @@ function pass(label: string) { console.log(`PASS ${++passed}: ${label}`); }
 
 async function main() {
   loadEnvConfig(process.cwd());
-  // No test invokes the model layer. Block HTTP as an additional regression tripwire.
+  // No test invokes the provider. Block HTTP as an additional regression tripwire.
   process.env.ANTHROPIC_API_KEY = "";
   const previousFetch = globalThis.fetch;
   let requests = 0;
@@ -330,6 +331,8 @@ async function main() {
         pass("markCaptureProcessed refuses skipped and processed captures");
       });
     } finally { await rm(directory, { recursive: true, force: true }); }
+
+    await checkOrganizeRuns(pass);
 
     for (const job of ["split", "route"]) {
       assert.deepEqual(samplingParameters("claude-haiku-4-5", job), { temperature: 0 });

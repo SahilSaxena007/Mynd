@@ -73,3 +73,20 @@ CREATE TABLE IF NOT EXISTS quick_calls (
   resolved_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS quick_calls_status_idx ON quick_calls (status);
+
+CREATE TABLE IF NOT EXISTS organize_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trigger text NOT NULL,
+  status text NOT NULL,
+  started_at timestamptz NOT NULL,
+  finished_at timestamptz NOT NULL DEFAULT now(),
+  captures_processed integer NOT NULL DEFAULT 0,
+  items_filed integer NOT NULL DEFAULT 0,
+  items_queued integer NOT NULL DEFAULT 0,
+  notes_created integer NOT NULL DEFAULT 0,
+  notes_appended integer NOT NULL DEFAULT 0,
+  cost_usd numeric(10,6) NOT NULL DEFAULT 0,
+  failed_capture_id uuid REFERENCES captures(id),
+  error text
+);
+CREATE INDEX IF NOT EXISTS organize_runs_finished_at_idx ON organize_runs (finished_at DESC);

@@ -20,6 +20,7 @@
     "split:preview": "tsx scripts/split-preview.ts",
     "split:check": "tsx scripts/split-coverage-check.ts",
     "organize": "tsx scripts/organize.ts",
+    "organize:cron": "tsx jobs/organize-cron.ts",
     "organize:check": "tsx scripts/organize-check.ts",
     "route:preview": "tsx scripts/route-preview.ts",
     "captures:skip": "tsx scripts/skip-captures.ts",

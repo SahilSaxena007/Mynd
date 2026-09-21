@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (120+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-20, after slice 4 shipped and was verified on the live site.
+**Last updated:** 2026-09-20, slice 3c implemented and verified locally; live setup pending.
 
 **Live URL:** https://mynd-production-c3eb.up.railway.app — works on phone and laptop, on any
 network, with the laptop closed. Installable to the home screen. Railway redeploys on every push to
@@ -20,8 +20,12 @@ network, with the laptop closed. Installable to the home screen. Railway redeplo
 | **3. View** — browse and edit the vault | ✅ live: folders → notes → a note, tappable checkboxes, Edit mode |
 | **4. Ask** — ask questions of your notes | ❌ not built (slice 5) |
 
-The one gap in daily use: captures sit as `pending` until someone runs `npm run organize`. That is
-slice 3c.
+Slice 3c is ready locally: cron entry point, durable run records, capture-specific failure handling,
+and last-run status on the vault home. Typecheck, lint, build, and all 28 organizer checks pass
+(19 existing + eight spec cases + dry-preview regression), with zero model calls.
+No production migration, paid run, push, or deploy was performed; `.env` was not edited.
+Before deploying, run `npm run db:migrate`, configure the second Railway service per the spec and
+README, and complete the live checklist. Until then, production organising remains manual.
 
 ## Slices
 
@@ -29,7 +33,8 @@ Done: **1** schema · **2** capture · **3a** model layer, spend guard, split ·
 topic, proven lossless in code · **3b** route and write · **3b.1** apply the reviewed plan ·
 **3b.2** no invented numbers, Tasks area, thinking while routing · **deploy** · **4** the screens.
 
-Next: **3c** the cron → **5** Ask → **6** Quick Calls and the learning loop → **7** grader.
+Next: **3c** migration, Railway cron setup and live verification → **5** Ask → **6** Quick Calls
+and the learning loop → **7** grader.
 Banked until there is a real corpus: the organiser-quality pass (B7, O5).
 
 ## What's in the vault
@@ -46,6 +51,9 @@ Total AI spend since the start: about **$0.33**.
 - **Nothing is invented.** Split output is verbatim quotes from the capture, and any number the
   organiser writes must be one you said.
 - **The vault is never half-written.** One transaction per run; a failure writes nothing.
+- **Every actual organise attempt leaves a run record outside the apply transaction**, including
+  rollback and no-pending runs. Only a non-provider Stage 1 failure can mark its pending capture
+  failed. Dry previews never write run records or mark captures failed.
 - **The organiser only appends to notes.** You may edit them by hand; it may not (UI2).
 - **Your edits cannot clobber the organiser, or be clobbered by it.** A save carries the note's
   exact last-read timestamp, checked under a row lock; a conflict returns 409 with the current note.
@@ -64,8 +72,8 @@ Still on the AI's honour: not inventing *words* when writing note text. Slice 7'
 - 9 open Quick Calls, some of them noise. Cleared in slice 6.
 - Organiser quality is tuned against only 7 test captures; it needs 50+ real ones, which is why daily
   use matters more than more tuning right now (B7, O5).
-- A capture that makes a model call fail stops the whole run (P5). Acceptable while runs are started
-  by hand; 3c has to handle it, because nobody will be watching.
+- Production still needs the 3c migration and cron service. The repository's `railway.json` is for
+  the web service; the cron service must not inherit its web start command or HTTP healthcheck.
 
 ## Commands
 
@@ -73,6 +81,7 @@ Still on the AI's honour: not inventing *words* when writing note text. Slice 7'
 npm run dev                     the app locally (-- -H 0.0.0.0 to reach it from the phone)
 npm run organize -- --dry       plan the filing, write nothing (a few cents)
 npm run organize -- --apply <run file>    write exactly that reviewed plan ($0)
+npm run organize:cron           paid unattended run; records result and exits (Railway entry point)
 npm run route:preview -- --ids <ids> --no-notes    replay captures, never writes
 npm run vault:print             see the vault from the terminal
 npm run captures:skip -- <ids>  ignore captures (deletes nothing)

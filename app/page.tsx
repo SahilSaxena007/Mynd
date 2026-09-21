@@ -10,6 +10,15 @@ function Vault() {
   return <main>
     <h1>Vault</h1>
     {error ? <p role="alert">{error}</p> : !vault ? <p role="status">Loading…</p> : <>
+      {vault.lastRun ? <p role={vault.lastRun.status === "failed" ? "alert" : undefined}>
+        {vault.lastRun.status === "failed" ? "Last organise attempt" : "Last organised"}{" "}
+        <time dateTime={vault.lastRun.finishedAt}>{new Date(vault.lastRun.finishedAt).toLocaleString()}</time>
+        {vault.lastRun.status === "failed" ? ` — failed: ${vault.lastRun.error}`
+          : vault.lastRun.status === "nothing_pending" ? " — nothing pending."
+            : ` — ${vault.lastRun.capturesProcessed} captures processed, ${vault.lastRun.itemsFiled} items filed, ${vault.lastRun.itemsQueued} queued; ${vault.lastRun.notesCreated} notes created, ${vault.lastRun.notesAppended} appended.`}
+        {` Cost $${vault.lastRun.costUsd.toFixed(6)}.`}
+        {vault.lastRun.failedCaptureId && " One capture was marked failed; its text is still in Captures."}
+      </p> : <p>Not organised yet.</p>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 16 }}>
         {vault.folders.map((folder) => {
           const count = vault.notes.filter((note) => note.folderId === folder.id).length;

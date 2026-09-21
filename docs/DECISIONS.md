@@ -1077,3 +1077,10 @@ text, because it is shown on a screen and may reach logs.
 ### 2026-09-20 — J3 The vault home shows "last organised …" from the newest run record
 **Why:** Railway keeps logs, but nobody goes looking at logs for something they assume is working. One
 line on the screen you already open turns a silent failure into an obvious one.
+
+### 2026-09-20 — J4 Dry runs remain previews; record actual manual and cron runs only
+`organize --dry` does not insert `organize_runs` or mark a capture failed. Existing model-call
+accounting and the local review file still apply. Actual manual runs, including applying a reviewed
+plan, and cron runs record their result outside the apply transaction.
+**Why:** explicitly confirmed by the human while implementing 3c; previewing a plan must not change
+capture status or present a preview as the last completed organisation.

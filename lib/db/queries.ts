@@ -1,7 +1,7 @@
-import { query, withTransaction } from "./transaction";
+import { assertOutsideTransaction, query, withTransaction } from "./transaction";
 import type {
   Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
-  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput,
+  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput, OrganizeRun, OrganizeRunInput,
 } from "./types";
 
 export { withTransaction } from "./transaction";
@@ -75,6 +75,34 @@ export async function markCaptureProcessed(id: string): Promise<void> {
   const result = await query(`UPDATE captures SET status = 'processed',
     processed_at = COALESCE(processed_at, now()) WHERE id = $1 AND status = 'pending'`, [id]);
   if (result.rowCount !== 1) throw new Error("Capture not found or no longer pending.");
+}
+
+export async function markCaptureFailed(id: string): Promise<boolean> {
+  const result = await query("UPDATE captures SET status = 'failed' WHERE id = $1 AND status = 'pending'", [id]);
+  return result.rowCount === 1;
+}
+
+export async function countFailedCaptures(): Promise<number> {
+  const result = await query<{ count: string }>("SELECT count(*) AS count FROM captures WHERE status = 'failed'");
+  return Number(result.rows[0].count);
+}
+
+export async function insertOrganizeRun(input: OrganizeRunInput): Promise<void> {
+  // DM11: fail closed if a caller would let rollback erase the run's history.
+  assertOutsideTransaction();
+  await query(`INSERT INTO organize_runs (trigger, status, started_at, captures_processed,
+    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+  [input.trigger, input.status, input.startedAt, input.capturesProcessed, input.itemsFiled,
+    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error]);
+}
+
+export async function getLastOrganizeRun(): Promise<OrganizeRun | null> {
+  return (await query<OrganizeRun>(`SELECT id, trigger, status, started_at AS "startedAt",
+    finished_at AS "finishedAt", captures_processed AS "capturesProcessed", items_filed AS "itemsFiled",
+    items_queued AS "itemsQueued", notes_created AS "notesCreated", notes_appended AS "notesAppended",
+    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error
+    FROM organize_runs ORDER BY finished_at DESC, id DESC LIMIT 1`)).rows[0] ?? null;
 }
 
 export async function listFolders(): Promise<Folder[]> {

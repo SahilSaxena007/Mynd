@@ -42,3 +42,7 @@ export async function organizeRowCounts() {
       (SELECT count(*)::int FROM model_calls) AS "modelCalls"`);
   return rows[0];
 }
+
+export async function organizeRunCount(): Promise<number> {
+  return (await query<{ count: number }>("SELECT count(*)::int AS count FROM organize_runs")).rows[0].count;
+}

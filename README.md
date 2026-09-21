@@ -96,8 +96,27 @@ Confirm the old token fails, `npm run vault:print` locally shows the same vault,
 and a subsequent push to `main` redeploys. Record the live URL and off-Wi-Fi result
 in `docs/STATE.md` only after verification.
 
-Organising remains a manual local command until slice 3c. Vault screens in slice 4
-must fetch data from the browser with the token, never during server render (SEC3).
+Vault screens fetch data from the browser with the token, never during server render (SEC3).
+
+## Slice 3c scheduled organiser
+
+Before deploying this slice, run `npm run db:migrate` to add `organize_runs`. No migration
+runs automatically on deploy. `npm run organize:cron` is the paid, unattended entry point:
+it organises once, records the result, closes the database pool, and exits non-zero on failure.
+Do not use it for free verification; use `npm run organize:check` instead.
+
+Follow `docs/slice-3c-spec.md` section 4 to create the second Railway service. Set its start
+command to `npm run organize:cron`, build command to `npm install --no-audit --no-fund`, and
+schedule to `0 7,19 * * *` UTC. It needs no domain, token, or HTTP healthcheck.
+Verify the service's effective configuration does not inherit the web service's `npm start`
+and `/api/health` from `railway.json`: where Config as Code is active,
+[file settings override dashboard values](https://docs.railway.com/config-as-code).
+Keep the web service's configuration intact when configuring the separate cron service.
+
+Actual runs are recorded after commit or rollback, including empty runs. The vault home and
+`vault:print` show the latest result; the latter also counts failed captures. Provider errors
+leave captures pending. An unusable Stage 1 result marks only that pending capture failed;
+Stage 2 failures mark none. Dry previews write neither run records nor failed statuses.
 
 ## Slice 1 database layer
 

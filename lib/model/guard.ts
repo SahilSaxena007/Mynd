@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { countModelCallsToday } from "../db/queries";
 
-type Run = { calls: number; active: boolean; stopped: boolean };
+type Run = { calls: number; costUsd: number; active: boolean; stopped: boolean };
 const runs = new AsyncLocalStorage<Run>();
 
 function refuse(limit: string): never {
@@ -11,18 +11,26 @@ function refuse(limit: string): never {
   throw new Error(`Model call refused: ${limit}.`);
 }
 
-export async function withModelRun<T>(fn: () => Promise<T>): Promise<T> {
+export async function withModelRun<T>(fn: () => Promise<T>, onCost?: (costUsd: number) => void): Promise<T> {
   // Nesting must not reset the caller's budget.
   const existing = runs.getStore();
   if (existing) {
     if (!existing.active || existing.stopped) refuse("model run is closed");
-    return fn();
+    const startCost = existing.costUsd;
+    try { return await fn(); }
+    finally { onCost?.(existing.costUsd - startCost); }
   }
-  const run: Run = { calls: 0, active: true, stopped: false };
+  const run: Run = { calls: 0, costUsd: 0, active: true, stopped: false };
   return runs.run(run, async () => {
     try { return await fn(); }
-    finally { run.active = false; }
+    finally { run.active = false; onCost?.(run.costUsd); }
   });
+}
+
+// Account before validating a billed response, including truncated/invalid output.
+export function recordModelCost(costUsd: number): void {
+  const run = runs.getStore();
+  if (run) run.costUsd += costUsd;
 }
 
 export function stopModelRun(): void {

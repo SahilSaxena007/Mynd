@@ -31,6 +31,21 @@ export type Note = {
 export type NoteMeta = Omit<Note, "body">;
 export type NoteSummary = Pick<Note, "id" | "title" | "summary" | "folderId">;
 
+export type OrganizeRunInput = {
+  trigger: "cron" | "manual";
+  status: "ok" | "failed" | "nothing_pending";
+  startedAt: Date;
+  capturesProcessed: number;
+  itemsFiled: number;
+  itemsQueued: number;
+  notesCreated: number;
+  notesAppended: number;
+  costUsd: number;
+  failedCaptureId: string | null;
+  error: string | null;
+};
+export type OrganizeRun = OrganizeRunInput & { id: string; finishedAt: Date };
+
 export type Rule = {
   id: string;
   kind: string;

@@ -4,7 +4,7 @@ import { withModelCallLock } from "../db/model-call-lock";
 import { insertModelCall } from "../db/queries";
 import { buildAnthropicRequest, requestAnthropic } from "./anthropic";
 import { estimateCost } from "./cost";
-import { checkModelBudget, guardModelCall, stopModelRun } from "./guard";
+import { checkModelBudget, guardModelCall, recordModelCost, stopModelRun } from "./guard";
 
 export { withModelRun } from "./guard";
 export { buildAnthropicRequest } from "./anthropic";
@@ -37,8 +37,10 @@ export async function complete<T>(input: CompleteInput): Promise<CompleteResult<
     return await withModelCallLock(async () => {
       await guardModelCall(input.maxTokens);
       const response = await requestAnthropic(input, model);
+      const costUsd = estimateCost(model, response.usage);
+      recordModelCost(costUsd);
       await insertModelCall({ job: input.job, model, ...response.usage,
-        estCostUsd: estimateCost(model, response.usage) });
+        estCostUsd: costUsd });
       // Log billable responses even when a refusal/truncation cannot be used.
       if (response.stopReason !== "end_turn") throw new Error(`Model response incomplete or refused (stop_reason: ${response.stopReason}).`);
       const data: unknown = JSON.parse(response.text);

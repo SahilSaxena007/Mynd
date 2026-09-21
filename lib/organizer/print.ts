@@ -1,20 +1,22 @@
 import type { RunRefs } from "./refs";
 import type { ResolvedPlan } from "./coverage";
 
-export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number) {
-  for (const ref of new Set(plan.filed.map((entry) => entry.note))) {
-    const existing = refs.notes.get(ref);
-    const fresh = plan.newNotes.find((note) => note.ref === ref);
-    const folder = fresh?.folder ?? [...refs.folders.values()].find((folder) => folder.id === existing?.folderId)?.slug;
-    console.log(`\n${existing ? "APPEND" : "NEW"} [${folder}] ${existing?.title ?? fresh?.title}`);
-    for (const entry of plan.filed.filter((entry) => entry.note === ref)) {
-      console.log(`  ${entry.item.ref} (${entry.item.capture}) [sure]\n${entry.markdown}`);
+export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number, details = true) {
+  if (details) {
+    for (const ref of new Set(plan.filed.map((entry) => entry.note))) {
+      const existing = refs.notes.get(ref);
+      const fresh = plan.newNotes.find((note) => note.ref === ref);
+      const folder = fresh?.folder ?? [...refs.folders.values()].find((folder) => folder.id === existing?.folderId)?.slug;
+      console.log(`\n${existing ? "APPEND" : "NEW"} [${folder}] ${existing?.title ?? fresh?.title}`);
+      for (const entry of plan.filed.filter((entry) => entry.note === ref)) {
+        console.log(`  ${entry.item.ref} (${entry.item.capture}) [sure]\n${entry.markdown}`);
+      }
     }
-  }
-  for (const call of plan.queued) {
-    console.log(`\nQUICK CALL ${call.item} [${call.reason}] ${call.itemText}`);
-    if (call.unverifiedNumbers?.length) console.log(`  Unverified numbers: ${call.unverifiedNumbers.join(", ")}`);
-    for (const option of call.options) console.log(`  ${JSON.stringify(option)}`);
+    for (const call of plan.queued) {
+      console.log(`\nQUICK CALL ${call.item} [${call.reason}] ${call.itemText}`);
+      if (call.unverifiedNumbers?.length) console.log(`  Unverified numbers: ${call.unverifiedNumbers.join(", ")}`);
+      for (const option of call.options) console.log(`  ${JSON.stringify(option)}`);
+    }
   }
   const counts = ["unsure", "invalid_target", "not_placed", "added_detail"].map((reason) =>
     `${reason} ${plan.queued.filter((call) => call.reason === reason).length}`).join(", ");

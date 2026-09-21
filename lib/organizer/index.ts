@@ -3,10 +3,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import Ajv from "ajv";
 import type { Folder, Note } from "../db/types";
+import { insertOrganizeRun, markCaptureFailed } from "../db/queries";
 import { withModelRun } from "../model";
 import { estimateCost } from "../model/cost";
 import { routeParameters } from "../model/capabilities";
-import { formatPreviewError } from "../model/errors";
+import { ModelProviderError } from "../model/errors";
+import { stopModelRun } from "../model/guard";
 import { routePrompt } from "../prompts/route";
 import { splitPrompt } from "../prompts/split";
 import { resolveCoverage, type ResolvedPlan } from "./coverage";
@@ -16,6 +18,7 @@ import { gatherForOrganize } from "./stage0-gather";
 import { splitCapture } from "./stage1-split";
 import { routeItems } from "./stage2-route";
 import { applyPlan, assertResolvedPlan } from "./stage3-apply";
+import { appliedCounts, newRunRecord, runError, type OrganizeStage } from "./run-record";
 
 type SavedRefs = Omit<RunRefs, "folders" | "notes" | "newNoteRefs"> & {
   folders: [string, Folder][];
@@ -87,7 +90,19 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
   }
   assertResolvedPlan(refs, data.plan);
   assertSavedNumbers(refs, data.plan);
-  const plan = await applyPlan(refs, data.plan, true);
+  const run = newRunRecord("manual");
+  let plan: ResolvedPlan;
+  try {
+    plan = await applyPlan(refs, data.plan, true);
+    Object.assign(run, appliedCounts(refs, plan));
+    run.status = "ok";
+  } catch (error) {
+    run.error = runError("apply", error);
+    throw error;
+  } finally {
+    try { await insertOrganizeRun(run); }
+    catch { throw new Error(runError("record", null)); }
+  }
   await saveRunRecord({ startedAt: new Date().toISOString(), dry: false, applied: true,
     appliedFrom: resolve(file), plan, refs: raw, modelCalls: 0, cost: 0 }, directory);
   console.log(`Applied exactly the saved plan from ${file}; zero model calls.`);
@@ -102,33 +117,52 @@ export async function saveRunRecord(record: Record<string, unknown>, directory =
   return path;
 }
 
-export async function runOrganize({ dry = false, limit = 10 }: { dry?: boolean; limit?: number } = {}) {
-  if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("--limit must be a positive integer.");
-  const context = await gatherForOrganize(Math.min(limit, 10));
-  if (!context.captures.length) { console.log("No pending captures. No model calls."); return; }
-  routeParameters(process.env.ROUTE_MODEL?.trim() || process.env.ORGANIZE_MODEL?.trim() || "",
-    8000, process.env.ROUTE_THINKING_BUDGET); // Refuse bad route settings before spending on split.
-  const timezone = process.env.USER_TIMEZONE;
-  localDate(context.captures[0].capturedAt, timezone); // Fail closed before spending.
-  const startedAt = new Date().toISOString();
-  const record: Record<string, unknown> = { startedAt, dry, context, splitPrompt, routePrompt };
+export async function runOrganize(
+  { dry = false, limit = 10, trigger = "manual", directory }: {
+    dry?: boolean; limit?: number; trigger?: "manual" | "cron"; directory?: string;
+  } = {},
+  // Tests replace only model stages; gathering, coverage, transactions and records stay real.
+  stages = { splitCapture, routeItems },
+) {
+  const run = newRunRecord(trigger);
+  const record: Record<string, unknown> = { startedAt: run.startedAt.toISOString(), dry, splitPrompt, routePrompt };
   const splits: Awaited<ReturnType<typeof splitCapture>>[] = [];
   record.splits = splits;
-  let stage = "split";
-  let captureIds = context.captures[0].id;
+  let stage: OrganizeStage = "configure";
   try {
+    if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("--limit must be a positive integer.");
+    stage = "gather";
+    const context = await gatherForOrganize(Math.min(limit, 10));
+    record.context = context;
+    if (!context.captures.length) {
+      run.status = "nothing_pending";
+      console.log("No pending captures. No model calls. Run cost $0.000000.");
+      return;
+    }
+    stage = "configure";
+    routeParameters(process.env.ROUTE_MODEL?.trim() || process.env.ORGANIZE_MODEL?.trim() || "",
+      8000, process.env.ROUTE_THINKING_BUDGET);
+    const timezone = process.env.USER_TIMEZONE;
+    localDate(context.captures[0].capturedAt, timezone);
     return await withModelRun(async () => {
+      stage = "split";
       for (const capture of context.captures) {
-        captureIds = capture.id;
-        splits.push(await splitCapture(capture));
-        console.log(`${capture.id}: absorbed spans ${JSON.stringify(splits.at(-1)!.data.absorbedSpans)}`);
+        try {
+          splits.push(await stages.splitCapture(capture));
+        } catch (error) {
+          stopModelRun();
+          if (!dry && !(error instanceof ModelProviderError) && await markCaptureFailed(capture.id)) {
+            run.failedCaptureId = capture.id;
+          }
+          throw error;
+        }
+        if (trigger === "manual") console.log(`${capture.id}: absorbed spans ${JSON.stringify(splits.at(-1)!.data.absorbedSpans)}`);
       }
       stage = "route";
-      captureIds = context.captures.map((capture) => capture.id).join(", ");
       const refs = buildRefs(context.captures, context.folders, context.notes, context.rules,
         splits.map((split) => split.data.items), timezone);
       record.input = routeInput(refs);
-      const route = await routeItems(refs);
+      const route = await stages.routeItems(refs);
       record.route = route;
       stage = "coverage";
       let plan = resolveCoverage(refs, route.data);
@@ -136,16 +170,32 @@ export async function runOrganize({ dry = false, limit = 10 }: { dry?: boolean; 
       if (dry) Object.assign(record, savedPlan(refs, plan));
       const cost = [...splits, route].reduce((sum, result) => sum + estimateCost(result.model, result.usage), 0);
       record.cost = cost;
-      if (!dry) { stage = "apply"; plan = await applyPlan(refs, plan); record.plan = plan; }
+      if (!dry) {
+        stage = "apply";
+        plan = await applyPlan(refs, plan);
+        record.plan = plan;
+        Object.assign(run, appliedCounts(refs, plan));
+      }
       record.applied = !dry;
-      printPlan(refs, plan, dry, route.usage.inputTokens, cost);
+      run.status = "ok";
+      printPlan(refs, plan, dry, route.usage.inputTokens, cost, trigger === "manual");
       return plan;
-    });
+    }, (cost) => { run.costUsd = cost; });
   } catch (error) {
-    const message = `${stage} failed for capture(s) ${captureIds}: ${formatPreviewError(error)}`;
-    record.error = message;
-    throw new Error(message, { cause: error });
+    run.status = "failed";
+    run.error = runError(stage, error);
+    record.error = run.error;
+    // No raw cause: it can contain source text and be printed by a caller.
+    throw new Error(run.error);
   } finally {
-    await saveRunRecord(record);
+    record.cost = run.costUsd;
+    // applyPlan has already committed or rolled back before this insert.
+    // Insert first, so failure to write a local preview file cannot erase history.
+    try {
+      if (!dry) await insertOrganizeRun(run);
+      if (trigger === "manual") await saveRunRecord(record, directory);
+    } catch {
+      throw new Error(runError("record", null));
+    }
   }
 }
