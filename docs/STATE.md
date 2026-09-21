@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (120+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-21, slice 3c.1 implemented; live verification pending.
+**Last updated:** 2026-09-21, slice 5 implemented locally; migration and live verification pending.
 
 **Live URL:** https://mynd-production-c3eb.up.railway.app — works on phone and laptop, on any
 network, with the laptop closed. Installable to the home screen. Railway redeploys on every push to
@@ -18,7 +18,7 @@ network, with the laptop closed. Installable to the home screen. Railway redeplo
 | **1. Capture** — dictate a thought, it saves | ✅ live, from anywhere |
 | **2. Organise** — files each thought into the vault | Cron service exists; first run truncated, revision 3c.1 prepared locally |
 | **3. View** — browse and edit the vault | ✅ live: folders → notes → a note, tappable checkboxes, Edit mode |
-| **4. Ask** — ask questions of your notes | ❌ not built (slice 5) |
+| **4. Ask** — ask questions of your notes | Implemented locally; all seven free checks pass; live verification pending |
 
 The first cron run hit the 8,000-output-token cap; Railway retries were stopped by setting
 Restart Policy to Never (J5). Slice 3c.1 now requests 16,000 for routing, records thinking tokens,
@@ -37,9 +37,19 @@ Done: **1** schema · **2** capture · **3a** model layer, spend guard, split ·
 topic, proven lossless in code · **3b** route and write · **3b.1** apply the reviewed plan ·
 **3b.2** no invented numbers, Tasks area, thinking while routing · **deploy** · **4** the screens.
 
-Next: **3c.1** migration, ceiling configuration and live verification → **5** Ask → **6** Quick Calls
+Next: **3c.1** outstanding live verification → **5** Ask migration, deployment and phone checks → **6** Quick Calls
 and the learning loop → **7** grader.
 Banked until there is a real corpus: the organiser-quality pass (B7, O5).
+
+Slice 5 adds authenticated Ask/history endpoints and a client-only Ask tab with expandable history,
+note links, labelled unfiled captures and per-answer cost. It gathers full notes and pending captures,
+uses one guarded answer call (4,000 output tokens; adaptive thinking disabled, no temperature),
+checks citations in code and stores one ask. No organiser number gate is applied to answers (A5).
+The free checks use an in-memory database boundary and simulated provider responses: no HTTP,
+no database connection and no paid model calls. Typecheck, lint, build and `ask:check` pass.
+`.env` was not edited. No migration, push or deployment was performed. Before live use, run
+`npm run db:migrate` to add `asks` (repeatable), deploy, then follow section 7 of
+`docs/slice-5-spec.md`; its paid phone scenarios remain unverified.
 
 ## What's in the vault
 
@@ -65,6 +75,8 @@ Last recorded AI spend before cron testing: about **$0.33**; the failed cron att
 - **The organiser cannot create folders.** The capability does not exist on its path.
 - **Nothing ever deletes a capture.** There is no DELETE statement anywhere in the repo.
 - **Spending is capped** per call, per run and per day, and fails closed if a limit is missing.
+- **Ask cannot save an unsourced answer.** Unknown citations are dropped; no valid citation forces
+  exactly "Not in your notes." Ask writes only `asks` and the model-call ledger, never vault content.
 - **The vault is never server-rendered.** The URL is public; screens fetch with the token (SEC3) —
   verified against the live site, not just the code.
 
@@ -93,6 +105,7 @@ npm run captures:skip -- <ids>  ignore captures (deletes nothing)
 npm run folders:describe -- <slug> "<text>"   change how a folder behaves
 npm run split:check             free, no AI
 npm run organize:check          free, no AI
+npm run ask:check               seven offline Ask checks, no HTTP or paid AI
 ```
 
 Every command that can spend money reports what it cost.

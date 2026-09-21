@@ -1,6 +1,6 @@
 import { assertOutsideTransaction, query, withTransaction } from "./transaction";
 import type {
-  Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
+  Ask, AskInput, Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
   NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput, OrganizeRun, OrganizeRunInput,
 } from "./types";
 
@@ -15,6 +15,22 @@ const noteMetaColumns = `id, folder_id AS "folderId", title, summary,
   created_at AS "createdAt", updated_at AS "updatedAt"`;
 const noteColumns = `${noteMetaColumns}, body`;
 const ruleColumns = `id, kind, instruction, active, created_at AS "createdAt"`;
+
+const askColumns = `id, question, answer, answered, citations, input_tokens AS "inputTokens",
+  output_tokens AS "outputTokens", cost_usd::float8 AS "costUsd", created_at AS "createdAt"`;
+
+export async function insertAsk(input: AskInput): Promise<Ask> {
+  return (await query<Ask>(`INSERT INTO asks
+    (question, answer, answered, citations, input_tokens, output_tokens, cost_usd)
+    VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7) RETURNING ${askColumns}`,
+  [input.question, input.answer, input.answered, JSON.stringify(input.citations),
+    input.inputTokens, input.outputTokens, input.costUsd])).rows[0];
+}
+
+export async function listAsks(limit = 25): Promise<Ask[]> {
+  return (await query<Ask>(`SELECT ${askColumns} FROM asks
+    ORDER BY created_at DESC, id DESC LIMIT $1`, [limit])).rows;
+}
 
 export async function insertCapture(input: CaptureInput): Promise<Capture> {
   const result = await query<Capture>(

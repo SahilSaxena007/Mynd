@@ -14,7 +14,7 @@ export function anthropicUsage(usage: {
 
 // Pure request builder; configuration is explicit so checks need no API or env.
 export function buildAnthropicRequest(input: CompleteInput, model: string, routeBudget?: string) {
-  const parameters: ReturnType<typeof routeParameters> = input.job === "route"
+  const parameters = input.job === "route"
     ? routeParameters(model, input.maxTokens, routeBudget) : samplingParameters(model, input.job);
   return {
     model,

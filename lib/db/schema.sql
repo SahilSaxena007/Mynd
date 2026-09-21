@@ -91,3 +91,16 @@ CREATE TABLE IF NOT EXISTS organize_runs (
   error text
 );
 CREATE INDEX IF NOT EXISTS organize_runs_finished_at_idx ON organize_runs (finished_at DESC);
+
+CREATE TABLE IF NOT EXISTS asks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  question text NOT NULL,
+  answer text NOT NULL,
+  answered boolean NOT NULL,
+  citations jsonb NOT NULL DEFAULT '[]',
+  input_tokens integer NOT NULL DEFAULT 0,
+  output_tokens integer NOT NULL DEFAULT 0,
+  cost_usd numeric(10,6) NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS asks_created_at_idx ON asks (created_at DESC);

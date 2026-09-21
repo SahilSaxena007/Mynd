@@ -21,7 +21,12 @@ export function routeParameters(model: string, maxTokens: number, budgetValue: s
   return budget > 0 ? { thinking: { type: "enabled", budget_tokens: budget } } : { temperature: 0 };
 }
 
-export function samplingParameters(model: string, job: string): { temperature?: number } {
+export function samplingParameters(model: string, job: string): {
+  temperature?: number; thinking?: { type: "disabled" };
+} {
+  if (job === "answer" && Object.hasOwn(capabilities, model) && capabilities[model].thinking === "adaptive") {
+    return { thinking: { type: "disabled" } };
+  }
   return (job === "split" || job === "route") && Object.hasOwn(capabilities, model)
     && capabilities[model].supportsTemperature ? { temperature: 0 } : {};
 }

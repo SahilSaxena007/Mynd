@@ -86,6 +86,13 @@ export type ModelCallInput = {
 };
 export type ModelCall = ModelCallInput & { id: string; createdAt: Date };
 
+export type AskCitation = { kind: "note" | "capture"; id: string; ref: string };
+export type AskInput = {
+  question: string; answer: string; answered: boolean; citations: AskCitation[];
+  inputTokens: number; outputTokens: number; costUsd: number;
+};
+export type Ask = AskInput & { id: string; createdAt: Date };
+
 export type QuickCallOption = {
   label: string; folder: string; note: string; new_note_title: string; new_folder_name: string;
 };

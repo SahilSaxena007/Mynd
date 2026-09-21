@@ -1181,3 +1181,21 @@ obvious and wrong.
 **Why:** A3 needs the history, and the table doubles as the record of how well R5 holds and what the
 user actually wants to know. Every ask is stored, including unanswered ones. Ask writes nothing else —
 no notes, no folders, no captures — so a question can never change the vault.
+
+---
+
+# 2026-09-21 — v2 roadmap note
+
+### 2026-09-21 — V2-1 Post-v1 differentiators (from the Karpathy method, validated by askglitch traction)
+1. **Lint** — background surfacing of contradictions, staleness and thin coverage in the vault.
+   *The capability is already proven in the retrieval test.*
+2. **Digest** — scheduled weekly synthesis, doubling as a re-engagement hook.
+
+**Deliberate divergence from the method:** Karpathy's version has the AI own Layer 2 and tells the
+user not to edit it. Mynd keeps the correction loop instead — **ownership without labour** (CP2).
+
+**Our edges over the method:** voice capture, the fidelity guarantees (R1–R5 enforced in code), and
+UI / mobile / cross-device. These are the parts that make it usable by someone who is not a developer.
+
+**Status:** post-v1. Not to be built into the current slices; recorded so the v1 work does not
+foreclose it.

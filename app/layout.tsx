@@ -17,9 +17,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <nav aria-label="Main navigation" style={{ position: "fixed", bottom: 0, left: 0, right: 0,
           display: "flex", justifyContent: "space-around", background: "white", borderTop: "1px solid #ccc",
           paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <Link href="/" style={{ padding: 18 }}>Vault</Link>
-          <Link href="/capture" style={{ padding: 18 }}>Capture</Link>
-          <Link href="/captures" style={{ padding: 18 }}>Captures</Link>
+          <Link href="/" style={{ padding: "18px 10px" }}>Vault</Link>
+          <Link href="/ask" style={{ padding: "18px 10px" }}>Ask</Link>
+          <Link href="/capture" style={{ padding: "18px 10px" }}>Capture</Link>
+          <Link href="/captures" style={{ padding: "18px 10px" }}>Captures</Link>
         </nav>
       </body>
     </html>
