@@ -1084,3 +1084,42 @@ accounting and the local review file still apply. Actual manual runs, including 
 plan, and cron runs record their result outside the apply transaction.
 **Why:** explicitly confirmed by the human while implementing 3c; previewing a plan must not change
 capture status or present a preview as the last completed organisation.
+
+---
+
+# 2026-09-21 — First cron run failed; revision 3c.1
+
+Spec: `docs/slice-3c1-spec.md`. The first scheduled run cost $0.056 and recorded `route failed.`
+because the route call hit exactly 8,000 output tokens — our own ceiling — and was truncated.
+Railway's default restart-on-failure policy then retried it, spending about $0.10 in twenty minutes
+before the human set the policy to Never.
+
+### 2026-09-21 — SP6 `MAX_TOKENS_PER_CALL` rises to 16,000, and the route call asks for it
+**Why:** nine captures produce a plan that does not fit in 8,000 output tokens, and the 2,048-token
+thinking budget is spent from the same allowance. Checked against the Models API, Haiku 4.5 allows
+**64,000** output tokens, so 8,000 was our own cap being wrong rather than a model limit. Behaviour of
+the guard is unchanged — it still refuses anything above the ceiling and still fails closed when a
+limit is missing — and cost is only ever what is actually produced. The split stays at 8,000; its
+largest output to date is 183 tokens.
+
+### 2026-09-21 — DM12 `model_calls` records `thinking_tokens`
+**Why:** the failure could not be diagnosed from our own data. `model_calls` stored total output only,
+so there was no way to tell whether thinking or the plan consumed the 8,000 tokens — and the answer
+decides whether to raise the ceiling or cut the thinking budget. The API returns
+`usage.output_tokens_details.thinking_tokens` and we were discarding it. Measure before tuning
+`ROUTE_THINKING_BUDGET`.
+
+### 2026-09-21 — J4 A truncated route call retries once within the same run, with half the batch
+Only on `stop_reason: max_tokens`, only once, reusing the Stage 1 results already in hand so no capture
+is split twice. A provider error, a schema failure or a refusal still triggers no retry.
+**Why:** J2 deliberately blames no capture for a Stage 2 failure, which left a gap: the same batch is
+retried on the next schedule and truncates identically, unattended, at four cents a time — the vault
+silently stops filling. Halving the batch inside the run recovers from *our* budget being wrong without
+retrying the model into working, which is what the no-retry rule in `AGENTS.md` prohibits. The captures
+left out stay `pending` for the next run.
+
+### 2026-09-21 — J5 The cron service's Restart Policy must be **Never**
+**Why:** `jobs/organize-cron.ts` exits non-zero on failure so Railway shows the run red (J1). Railway's
+default "On Failure" policy reads that exit code and restarts the container — up to ten times on this
+plan — and every attempt is a real, paid organise run. A single genuine failure became several in
+twenty minutes. One attempt per schedule, then wait, is the whole intent of J2.
