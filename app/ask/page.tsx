@@ -23,6 +23,8 @@ function AskScreen({ question, setQuestion }: { question: string; setQuestion: (
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [sending, setSending] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [unanswered, setUnanswered] = useState(false);
   const submitting = useRef(false);
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -54,13 +56,19 @@ function AskScreen({ question, setQuestion }: { question: string; setQuestion: (
     submitting.current = true;
     setSending(true);
     setError("");
+    setUnanswered(false);
     try {
       const response = await vaultFetch("/api/ask", { method: "POST",
         headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }) });
       if (!response.ok) throw new Error();
       const result = await response.json();
-      setAsks((current) => [result.ask, ...(current ?? [])].slice(0, 25));
-      setLabels((current) => ({ ...current, ...result.labels }));
+      if (result.ask.answered) {
+        setAsks((current) => [result.ask, ...(current ?? [])].slice(0, 25));
+        setLabels((current) => ({ ...current, ...result.labels }));
+        setExpandedId(result.ask.id);
+      } else {
+        setUnanswered(true);
+      }
       setNow(Date.now());
       setQuestion("");
     } catch {
@@ -80,25 +88,37 @@ function AskScreen({ question, setQuestion }: { question: string; setQuestion: (
         style={{ display: "block", width: "100%", boxSizing: "border-box", font: "inherit", margin: "12px 0" }} />
       <button disabled={sending || !question.trim()} type="submit">{sending ? "Asking…" : "Ask"}</button>
       {error && <p role="alert">{error}</p>}
+      {unanswered && <div role="status">
+        <p>Not in your notes.</p>
+        <p>Nothing in your vault answers that.</p>
+      </div>}
     </form>
     <h2>Recent questions</h2>
     {historyError && <p role="alert">{historyError}</p>}
     {asks === null ? !historyError && <p role="status">Loading…</p>
-      : asks.length === 0 ? <p>No questions yet.</p> : asks.map((ask) => <details key={ask.id}
+      : asks.length === 0 ? <p>No questions yet.</p> : asks.map((ask) => <article key={ask.id}
         style={{ borderTop: "1px solid #ccc", padding: "16px 0", overflowWrap: "anywhere" }}>
-        <summary style={{ cursor: "pointer" }}>
+        <button type="button" aria-expanded={expandedId === ask.id}
+          onClick={() => setExpandedId((current) => current === ask.id ? null : ask.id)}
+          style={{ cursor: "pointer", display: "block", width: "100%", padding: 0,
+            border: 0, background: "none", color: "inherit", font: "inherit", textAlign: "left",
+            overflowWrap: "anywhere" }}>
           <strong>{ask.question}</strong>
-          <p>{ask.answer.length > 140 ? `${ask.answer.slice(0, 140)}…` : ask.answer}</p>
+          <span style={{ whiteSpace: "pre-wrap", margin: "16px 0",
+            display: expandedId === ask.id ? "block" : "-webkit-box",
+            WebkitBoxOrient: "vertical", WebkitLineClamp: expandedId === ask.id ? undefined : 2,
+            overflow: expandedId === ask.id ? "visible" : "hidden" }}>{ask.answer}</span>
           <time dateTime={ask.createdAt}>{relativeTime(ask.createdAt, now)}</time>
-        </summary>
-        <p style={{ whiteSpace: "pre-wrap" }}>{ask.answer}</p>
-        {ask.citations.map((citation) => <p key={citation.ref}>
+        </button>
+        {expandedId === ask.id && <>
+          {ask.citations.map((citation) => <p key={citation.ref}>
           {citation.kind === "note"
             ? <Link href={`/note/${citation.id}`}>{labels[citation.id] ?? citation.ref}</Link>
             : <span style={{ whiteSpace: "pre-wrap" }}><em>not yet filed</em>: {labels[citation.id] ?? citation.ref}</span>}
-        </p>)}
-        <small>Cost: ${ask.costUsd.toFixed(6)}</small>
-      </details>)}
+          </p>)}
+          <small>Cost: ${ask.costUsd.toFixed(6)}</small>
+        </>}
+      </article>)}
   </section>;
 }
 
