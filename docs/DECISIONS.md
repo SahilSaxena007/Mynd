@@ -1230,3 +1230,12 @@ result shows at ask time as a warning above the history, styled as information r
 storing them — they are the record of what the vault could not answer, and the evidence that R5 holds
 — is preserved by keeping the row and changing only what the list displays. A truthful "I don't know"
 is the feature working, so the UI must not dress it as a failure.
+
+### 2026-09-21 — B15 Slice 5.1 verified; all three original paths are live
+Capture, organise, view and ask all work on the live URL, with the organiser running itself at 07:00
+and 19:00 UTC. Nothing in daily use needs a terminal.
+**State at close:** 11 notes across six areas, 16 captures filed, 6 waiting for the next run, 12 open
+Quick Calls, 6 questions asked (4 answered), 5 organise runs, $0.473 of model spend in total since the
+project began.
+Next: slice 6 — Quick Calls and the learning loop, which is where CP2's "correction, not construction"
+stops being a principle and becomes a mechanism.

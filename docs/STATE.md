@@ -1,13 +1,13 @@
 # STATE.md — where Mynd stands
 
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
-history (120+ dated entries); this page is just the picture.
+history (140+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-21, slice 5 implemented locally; migration and live verification pending.
+**Last updated:** 2026-09-21. **All three original paths are working, live.**
 
-**Live URL:** https://mynd-production-c3eb.up.railway.app — works on phone and laptop, on any
-network, with the laptop closed. Installable to the home screen. Railway redeploys on every push to
-`main`; builds run `npm install` (E7) and no migration runs on deploy.
+**Live URL:** https://mynd-production-c3eb.up.railway.app — phone and laptop, any network, laptop
+closed. Installable to the home screen. Railway redeploys on every push to `main`; builds run
+`npm install` (E7); no migration runs on deploy.
 
 ---
 
@@ -16,96 +16,71 @@ network, with the laptop closed. Installable to the home screen. Railway redeplo
 | Path | Status |
 |---|---|
 | **1. Capture** — dictate a thought, it saves | ✅ live, from anywhere |
-| **2. Organise** — files each thought into the vault | Cron service exists; first run truncated, revision 3c.1 prepared locally |
+| **2. Organise** — files each thought into the vault | ✅ live, **by itself**, 07:00 and 19:00 UTC |
 | **3. View** — browse and edit the vault | ✅ live: folders → notes → a note, tappable checkboxes, Edit mode |
-| **4. Ask** — ask questions of your notes | Implemented locally; all seven free checks pass; live verification pending |
+| **4. Ask** — ask questions of your notes | ✅ live, with citations and a question history |
 
-The first cron run hit the 8,000-output-token cap; Railway retries were stopped by setting
-Restart Policy to Never (J5). Slice 3c.1 now requests 16,000 for routing, records thinking tokens,
-and retries only a truncated route once using the oldest half of the already-split batch.
-Omitted captures remain pending. Dry previews still do not change capture status or run records.
-Typecheck, lint, build, and all 34 organizer checks pass (28 existing + six new), with zero
-provider calls. The first check run lost its database connection during cleanup; the full rerun passed.
-No production migration, paid run, push, or deploy was performed in this session; `.env` was not edited.
-Before live testing, run `npm run db:migrate` and set `MAX_TOKENS_PER_CALL=16000` locally and on
-both Railway services. Follow `docs/slice-3c1-spec.md` for the paid preview and cron checks;
-keep Restart Policy Never.
+Nothing needs a terminal any more. Dictate, and it files itself.
 
 ## Slices
 
-Done: **1** schema · **2** capture · **3a** model layer, spend guard, split · **3a.1** split by
-topic, proven lossless in code · **3b** route and write · **3b.1** apply the reviewed plan ·
-**3b.2** no invented numbers, Tasks area, thinking while routing · **deploy** · **4** the screens.
+Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in code · **3b**/**3b.1**/
+**3b.2** route and write · **deploy** · **4** the screens · **3c**/**3c.1** the cron · **5**/**5.1** Ask.
 
-Next: **3c.1** outstanding live verification → **5** Ask migration, deployment and phone checks → **6** Quick Calls
-and the learning loop → **7** grader.
+Next: **6** Quick Calls and the learning loop → **7** the grader.
 Banked until there is a real corpus: the organiser-quality pass (B7, O5).
+Post-v1: lint and digest (V2-1).
 
-Slice 5 adds authenticated Ask/history endpoints and a client-only Ask tab with expandable history,
-note links, labelled unfiled captures and per-answer cost. It gathers full notes and pending captures,
-uses one guarded answer call (4,000 output tokens; adaptive thinking disabled, no temperature),
-checks citations in code and stores one ask. No organiser number gate is applied to answers (A5).
-The free checks use an in-memory database boundary and simulated provider responses: no HTTP,
-no database connection and no paid model calls. Typecheck, lint, build and `ask:check` pass.
-`.env` was not edited. No migration, push or deployment was performed. Before live use, run
-`npm run db:migrate` to add `asks` (repeatable), deploy, then follow section 7 of
-`docs/slice-5-spec.md`; its paid phone scenarios remain unverified.
+## Where things stand right now
 
-## What's in the vault
-
-Six fixed areas the organiser can never add to: **Journal · Tasks · Mynd · Work · Personal ·
-Inbox**. At the last check: 5 notes, 9 open Quick Calls, 7 captures filed, 15 skipped.
-
-Last recorded AI spend before cron testing: about **$0.33**; the failed cron attempts added spend
-(see the 2026-09-21 decisions). This implementation session made no provider calls.
+```
+notes 11        journal 1 · tasks 1 · mynd 6 · work 1 · personal 2 · inbox 0
+captures        16 filed · 6 waiting · 15 skipped
+quick calls     12 open   <- slice 6 clears these
+asks            6 asked, 4 answered
+organise runs   5
+spend           $0.473 across 98 model calls, all time
+```
 
 ## What code guarantees (not the AI)
 
 - **Nothing is lost.** Every part of a capture reaches some item; every item is filed or queued.
   Asserted, not hoped for.
-- **Nothing is invented.** Split output is verbatim quotes from the capture, and any number the
-  organiser writes must be one you said.
-- **The vault is never half-written.** One transaction per run; a failure writes nothing.
-- **Every actual organise attempt leaves a run record outside the apply transaction**, including
-  rollback and no-pending runs. Only a non-provider Stage 1 failure can mark its pending capture
-  failed. Dry previews never write run records or mark captures failed.
+- **Nothing is invented.** Split output is verbatim quotes; any number the organiser writes must be
+  one you said; an answer with no valid citation becomes "not in your notes".
+- **The vault is never half-written.** One transaction per organise run; a failure writes nothing.
 - **The organiser only appends to notes.** You may edit them by hand; it may not (UI2).
-- **Your edits cannot clobber the organiser, or be clobbered by it.** A save carries the note's
-  exact last-read timestamp, checked under a row lock; a conflict returns 409 with the current note.
+- **Your edits and the organiser's cannot clobber each other** — saves carry the note's exact
+  last-read timestamp, checked under a row lock (UI3).
 - **The organiser cannot create folders.** The capability does not exist on its path.
-- **Nothing ever deletes a capture.** There is no DELETE statement anywhere in the repo.
+- **Nothing ever deletes a capture.** No DELETE statement anywhere in the repo.
 - **Spending is capped** per call, per run and per day, and fails closed if a limit is missing.
-- **Ask cannot save an unsourced answer.** Unknown citations are dropped; no valid citation forces
-  exactly "Not in your notes." Ask writes only `asks` and the model-call ledger, never vault content.
-- **The vault is never server-rendered.** The URL is public; screens fetch with the token (SEC3) —
-  verified against the live site, not just the code.
+- **Asking never writes to the vault** — one `asks` row and one `model_calls` row, nothing else.
+- **The vault is never server-rendered.** The URL is public; screens fetch with the token (SEC3),
+  verified against the live site.
 
 Still on the AI's honour: not inventing *words* when writing note text. Slice 7's grader measures it.
 
 ## Known issues
 
-- One line ("Two prompts instead of one in the organizer") is filed in the wrong note. Now fixable by
-  hand in the note Edit mode.
-- 9 open Quick Calls, some of them noise. Cleared in slice 6.
-- Organiser quality is tuned against only 7 test captures; it needs 50+ real ones, which is why daily
-  use matters more than more tuning right now (B7, O5).
-- Production needs the 3c.1 thinking-token migration and 16,000-token ceiling on both services.
-  Keep the cron service's Restart Policy Never; complete the live checklist before restoring its schedule.
+- One line ("Two prompts instead of one in the organizer") sits in the wrong note. Fixable by hand in
+  Edit mode; Ask correctly quotes it because it is genuinely there (O3).
+- 12 open Quick Calls, some of them noise — slice 6.
+- Shopping list has accumulated duplicates across captures ("Dual Switch Mouse listed twice") — the
+  O5 repetition problem, now visible in real data.
+- Organiser quality is still tuned against 7 test captures. Daily use is the fix (B7).
 
 ## Commands
 
 ```
-npm run dev                     the app locally (-- -H 0.0.0.0 to reach it from the phone)
-npm run organize -- --dry       plan the filing, write nothing (a few cents)
+npm run organize -- --dry                 plan the filing, write nothing (a few cents)
 npm run organize -- --apply <run file>    write exactly that reviewed plan ($0)
-npm run organize:cron           paid unattended run; records result and exits (Railway entry point)
+npm run organize:cron                     the unattended run (what Railway calls)
 npm run route:preview -- --ids <ids> --no-notes    replay captures, never writes
-npm run vault:print             see the vault from the terminal
-npm run captures:skip -- <ids>  ignore captures (deletes nothing)
-npm run folders:describe -- <slug> "<text>"   change how a folder behaves
-npm run split:check             free, no AI
-npm run organize:check          free, no AI
-npm run ask:check               seven offline Ask checks, no HTTP or paid AI
+npm run vault:print                       see the vault from the terminal
+npm run captures:skip -- <ids>            ignore captures (deletes nothing)
+npm run folders:describe -- <slug> "…"    change how a folder behaves
+npm run split:check · organize:check · ask:check    free, no AI
 ```
 
 Every command that can spend money reports what it cost.
@@ -118,3 +93,4 @@ written slice spec in `docs/`. Nothing lives in chat — read `AGENTS.md`, `ARCH
 
 A slice is not done when its automated checks pass; it is done when the manual scenarios pass on the
 real device (PR2). Anything that could expose the vault is checked against the live site (B12).
+Commands handed to the human are PowerShell, never bash (PR4).
