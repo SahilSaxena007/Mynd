@@ -1261,3 +1261,43 @@ only in Railway's logs.
 they are safe to store and display. The run record is what a human actually looks at; a cause that
 lives only in a log is a cause nobody reads. One line, folded into slice 6 rather than its own
 revision.
+
+---
+
+# 2026-09-22 — Slice 6 planning (Quick Calls and the learning loop)
+
+Spec: `docs/slice-6-spec.md`.
+
+### 2026-09-22 — Q1 Resolving a Quick Call appends the item text verbatim; no model call
+Code adds a `- [ ] ` prefix when the target is a checklist note (P13), and nothing else.
+**Why:** resolving should be instant, free and completely predictable — the user has just told the
+system where something goes, and introducing a model call there adds cost and a failure path to an
+action that feels like a button press. The words are already the user's own (Stage 1 is extractive,
+P6), and slice 4's Edit mode is there if the wording needs tidying.
+
+### 2026-09-22 — Q2 The rule is a pre-filled sentence the user can edit, reword, or clear to skip
+The page composes a suggestion from the item's topic and the chosen destination; whatever is in the
+box on Save is what is stored.
+**Why:** DM5 says rules are the user's corrections in their own words, and an auto-written rule is the
+AI's words wearing the user's name. But an empty box on a phone means the loop almost never learns.
+A suggestion the user can accept or overwrite keeps authorship while removing the typing.
+
+### 2026-09-22 — Q3 Dismissing files nothing and creates no rule
+The row becomes `dismissed`; no note is written.
+**Why:** some queued items are scraps from an early split ("Right,", ", but") and filing them anywhere
+just moves noise into the vault. This is a deliberate, recorded exception to R1's "every item is filed
+or queued" — acceptable only because the capture is immutable (DM1), so the words still exist in full,
+and because the dismissal itself is recorded rather than silent. (Considered and rejected: dismissing
+to Inbox, which preserves the letter of R1 by filling the Inbox with noise the user then clears twice.)
+
+### 2026-09-22 — Q4 A rule can be turned off; nothing is deleted
+`active = false`, and `listActiveRules` stops returning it.
+**Why:** not requested, added in review. Rules are read at the start of every organise run, so a rule
+that turns out to be wrong would steer every future run with no way back — the one place in the design
+where a single user action has unbounded forward reach. The `active` column already existed for this.
+
+### 2026-09-22 — Q5 Creating a folder from a Quick Call stays unbuilt; the six areas remain fixed
+**Why:** F1 promised that new folders arrive only through a Quick Call the user approves, and that path
+is still not built. It needs a name *and* a description carrying the folder's grouping rule (DM2) —
+real UI for something none of the twelve queued items requires. Recorded as a known gap so the promise
+is not quietly forgotten; until it exists, anything that fits nowhere goes to Inbox.
