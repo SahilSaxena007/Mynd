@@ -1239,3 +1239,25 @@ Quick Calls, 6 questions asked (4 answered), 5 organise runs, $0.473 of model sp
 project began.
 Next: slice 6 — Quick Calls and the learning loop, which is where CP2's "correction, not construction"
 stops being a principle and becomes a mechanism.
+
+---
+
+# 2026-09-22 — Cron failures were a config mismatch
+
+### 2026-09-22 — E8 A Railway service's variables must be updated on EVERY service when a limit changes
+Two cron runs failed with `route failed.` and no `route` row in `model_calls`. Cause: 3c.1 raised
+`MAX_TOKENS_PER_CALL` to 16,000 and the route call now asks for it, but the **cron service** still had
+8,000, so the spend guard refused the call before it reached the provider. Splits ask for 8,000 and
+were allowed, which is why every run got most of the way and then stopped.
+**Why it is recorded:** the guard behaved perfectly — it refused, spent nothing on the refused call,
+wrote nothing, and left the captures pending — but a variable set on one of two services produced a
+silent daily failure. Any future limit change is a change on the web service *and* the cron service.
+
+### 2026-09-22 — J6 (carry into slice 6) Guard refusals belong in the run record, not only in the logs
+`runError()` collapses every non-provider failure to `"<stage> failed."`, so the record said
+`route failed.` while the actual reason — "Model call refused: MAX_TOKENS_PER_CALL exceeded" — existed
+only in Railway's logs.
+**Why:** guard refusal strings are the project's own text, naming a limit and nothing of the user's, so
+they are safe to store and display. The run record is what a human actually looks at; a cause that
+lives only in a log is a cause nobody reads. One line, folded into slice 6 rather than its own
+revision.
