@@ -101,5 +101,15 @@ export type QuickCallInput = {
   reason: "unsure" | "invalid_target" | "not_placed" | "added_detail";
 };
 export type QuickCall = QuickCallInput & {
-  id: string; status: "open" | "resolved"; createdAt: Date; resolvedAt: Date | null;
+  id: string; status: "open" | "resolved" | "dismissed"; createdAt: Date; resolvedAt: Date | null;
+};
+
+export type QuickCallResolution =
+  | { action: "dismiss" }
+  | { action: "file"; noteId: string }
+  | { action: "file"; folderId: string; newNoteTitle: string };
+
+export type QuickCallView = Omit<QuickCall, "createdAt" | "resolvedAt"> & {
+  createdAt: string; resolvedAt: string | null;
+  choices: { label: string; resolution: QuickCallResolution | null }[];
 };

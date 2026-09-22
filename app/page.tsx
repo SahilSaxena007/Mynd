@@ -28,7 +28,7 @@ function Vault() {
           </Link>;
         })}
       </div>
-      <p>{vault.openQuickCalls} {vault.openQuickCalls === 1 ? "item needs" : "items need"} a decision — Quick Calls arrive in slice 6.</p>
+      <p><Link href="/quick-calls">{vault.openQuickCalls} {vault.openQuickCalls === 1 ? "item needs" : "items need"} a decision</Link></p>
     </>}
   </main>;
 }

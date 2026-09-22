@@ -6,6 +6,11 @@ import type { RunRefs } from "./refs";
 export type OrganizeStage = "gather" | "configure" | "split" | "route" | "coverage" | "apply" | "record";
 
 export function runError(stage: OrganizeStage, error: unknown): string {
+  // Guard errors are plain Error objects: only their complete, fixed vocabulary is safe.
+  const guardMessage = /^Model call refused: (?:active withModelRun required|model run is closed|maxTokens invalid|(?:MAX_TOKENS_PER_CALL|MAX_CALLS_PER_RUN|DAILY_CALL_CAP) (?:missing or invalid|invalid|exceeded)|DAILY_CALL_CAP count unavailable)\.$/;
+  if (!(error instanceof ModelProviderError) && error instanceof Error && guardMessage.test(error.message)) {
+    return `${stage} failed: ${error.message}`;
+  }
   if (!(error instanceof ModelProviderError)) return `${stage} failed.`;
   // Provider fields are external input too. Only fixed operational names may escape.
   const types = new Set(["api_error", "authentication_error", "permission_error", "not_found_error",

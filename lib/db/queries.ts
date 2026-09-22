@@ -1,7 +1,7 @@
 import { assertOutsideTransaction, query, withTransaction } from "./transaction";
 import type {
   Ask, AskInput, Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
-  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput, OrganizeRun, OrganizeRunInput,
+  NoteMeta, NoteSummary, Rule, RuleInput, ModelCallInput, QuickCall, QuickCallInput, QuickCallResolution, OrganizeRun, OrganizeRunInput,
 } from "./types";
 
 export { withTransaction } from "./transaction";
@@ -80,6 +80,45 @@ export async function insertQuickCall(input: QuickCallInput): Promise<QuickCall>
 export async function listOpenQuickCalls(): Promise<QuickCall[]> {
   return (await query<QuickCall>(`SELECT ${quickCallColumns} FROM quick_calls
     WHERE status = 'open' ORDER BY created_at, id`)).rows;
+}
+
+export const getOpenQuickCalls = listOpenQuickCalls;
+
+export async function resolveQuickCall(id: string, resolution: QuickCallResolution): Promise<
+  { ok: true } | { ok: false; reason: "gone" | "conflict" }
+> {
+  return withTransaction(async () => {
+    const call = (await query<QuickCall>(
+      `SELECT ${quickCallColumns} FROM quick_calls WHERE id = $1 FOR UPDATE`, [id],
+    )).rows[0];
+    if (!call) return { ok: false, reason: "gone" };
+    if (call.status !== "open") return { ok: false, reason: "conflict" };
+
+    if (resolution.action === "file") {
+      let note: Note;
+      if ("noteId" in resolution) {
+        // Lock before detecting a checklist, so an edit cannot race the append.
+        const target = (await query<Note>(
+          `SELECT ${noteColumns} FROM notes WHERE id = $1 FOR UPDATE`, [resolution.noteId],
+        )).rows[0];
+        if (!target) throw new Response("That note no longer exists. Choose another destination.", { status: 400 });
+        note = target;
+      } else {
+        const folder = (await query<{ id: string }>(
+          "SELECT id FROM folders WHERE id = $1 FOR KEY SHARE", [resolution.folderId],
+        )).rows[0];
+        if (!folder) throw new Response("That folder no longer exists. Choose another destination.", { status: 400 });
+        if (!resolution.newNoteTitle.trim()) throw new Response("A new note needs a title.", { status: 400 });
+        note = await createNote({ folderId: folder.id, title: resolution.newNoteTitle, body: "" });
+      }
+      const checklist = /^\s*[-*+] \[[ xX]\](?:\s|$)/m.test(note.body);
+      await appendToNote(note.id, `${checklist ? "- [ ] " : ""}${call.itemText}`);
+      await linkNoteToCapture(note.id, call.captureId);
+    }
+    await query("UPDATE quick_calls SET status = $2, resolved_at = now() WHERE id = $1",
+      [id, resolution.action === "dismiss" ? "dismissed" : "resolved"]);
+    return { ok: true };
+  });
 }
 
 export async function listCaptures(limit = 100): Promise<Capture[]> {
@@ -219,8 +258,13 @@ export async function listActiveRules(): Promise<Rule[]> {
 }
 
 export async function createRule(input: RuleInput): Promise<Rule> {
+  if (!input.instruction.trim()) throw new Error("Rule cannot be blank.");
   return (await query<Rule>(`INSERT INTO rules (kind, instruction)
     VALUES ($1, $2) RETURNING ${ruleColumns}`, [input.kind, input.instruction])).rows[0];
+}
+
+export async function setRuleActive(id: string, active: boolean): Promise<boolean> {
+  return (await query("UPDATE rules SET active = $2 WHERE id = $1", [id, active])).rowCount === 1;
 }
 
 export async function insertModelCall(input: ModelCallInput): Promise<void> {
