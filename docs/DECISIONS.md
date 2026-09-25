@@ -1301,3 +1301,41 @@ where a single user action has unbounded forward reach. The `active` column alre
 is still not built. It needs a name *and* a description carrying the folder's grouping rule (DM2) —
 real UI for something none of the twelve queued items requires. Recorded as a known gap so the promise
 is not quietly forgotten; until it exists, anything that fits nowhere goes to Inbox.
+
+---
+
+# 2026-09-23 — Organiser quality backlog opened
+
+### 2026-09-23 — O6 `docs/quality-backlog.md` holds the organiser-quality evidence, organised by root cause
+Eleven observations from the human plus ten found by reading the 20-note vault, traced to **six root
+causes** rather than listed as symptoms. Nothing in it is scheduled; it is what B7 banked, now with real
+evidence behind it.
+**The six:** RC1 a note is a string, not a document with sections (all 20 notes contain zero headings);
+RC2 append-only means the vault can only accrete, never tidy; RC3 append-vs-create depends on summaries
+that are missing on five of twenty notes; RC4 no model of an item's type or time orientation ("I have a
+meeting" vs "I had"); RC5 Quick Calls offer options with no ranking, no reasoning and no surrounding
+context; RC6 the rule suggestion is templated from the item's label.
+**Why it is recorded this way:** most of the eleven symptoms are three or four problems wearing
+different clothes. Fixing RC1 alone addresses five of them, and fixing them symptom-by-symptom would
+mean eleven prompt patches that each move the failure somewhere else.
+
+### 2026-09-23 — O7 The worst thing in the vault is two notes titled `things to do` in the same folder
+Both created without summaries, so the second run could not see the first (RC3). Tasks now also live in
+two places: `tasks/personal to-dos` and two `personal/things to do` notes, because F3 changed the
+folder descriptions but **nothing re-files existing notes** — a description change only affects new
+content, so the vault keeps a permanent record of every past policy.
+**Why it matters more than it looks:** duplicate titles break the rule the user is building their mental
+map on — one topic, one home. Predictability beats accuracy: a consistently second-best folder is
+forgivable, two identical titles are not.
+
+### 2026-09-23 — O8 The nonsense rule suggestion has a specific cause: the template reads the item's label
+`unassigned goes in Mynd · user involvement in organization.` — "unassigned" is the label **code**
+assigns to residual text under P7, not a topic the model chose. The template `<topic> goes in <folder> ·
+<note>` therefore produces a grammatical, worthless rule; saved as-is it would teach the organiser to
+file every unplaced fragment into one Mynd note.
+**Fix direction:** suggest no rule when the topic is `unassigned` or the reason is `not_placed`, and
+phrase the suggestion from the item's content and the reason it was queued rather than from its label.
+
+### 2026-09-23 — V2-2 Templates and progress meters (from H5)
+A recurring plan — a gym programme, say — becomes a daily tickable checklist with a progress meter, and
+organisation templates become shareable. Post-v1, alongside V2-1's lint and digest.
