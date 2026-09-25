@@ -1339,3 +1339,17 @@ phrase the suggestion from the item's content and the reason it was queued rathe
 ### 2026-09-23 — V2-2 Templates and progress meters (from H5)
 A recurring plan — a gym programme, say — becomes a daily tickable checklist with a progress meter, and
 organisation templates become shareable. Post-v1, alongside V2-1's lint and digest.
+
+### 2026-09-23 — O9 A rule outranks a folder description, so a mis-suggested rule beats the architecture
+The route prompt says "Apply the user's rules verbatim; they override these organization defaults."
+Two live rules already exploit that: `book dentist goes in Personal · things to do.` contradicts F3
+(tasks belong in Tasks) and points at one of the two duplicate `things to do` notes from O7, so a
+single correction has permanently entrenched the structural fault the backlog calls A2.
+**Second problem, same template:** suggestions are hyper-specific — `meeting with dingbra goes in Work ·
+meeting with Dingbra.` fires only for that exact topic label. It teaches a fact, not a pattern, so the
+loop learns slowly and the rules list grows one narrow line at a time.
+**Fix direction (quality pass, with RC6):** a suggested rule should describe a *kind* of item rather
+than one label; and where a rule contradicts a folder's description, the user should be told at
+suggestion time rather than discovering it months later. Whether rules should still win that contest is
+a design question — they probably should, since they are the user's explicit correction, but it must be
+a visible choice rather than a silent one.
