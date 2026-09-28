@@ -3,8 +3,9 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (140+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-23. **All three original paths are working, live.** Slice 6 is
-implemented locally; live phone/laptop verification is still pending.
+**Last updated:** 2026-09-28. **All five paths are working, live.** The build now turns outward:
+slices 7 and 8 are what make it possible to put Mynd in five other people's hands.
+Standing judgement from daily use: **Ask is good; organisation is the weak half.**
 
 **Live URL:** https://mynd-production-c3eb.up.railway.app — phone and laptop, any network, laptop
 closed. Installable to the home screen. Railway redeploys on every push to `main`; builds run
@@ -29,13 +30,27 @@ Nothing needs a terminal any more. Dictate, and it files itself.
 Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in code · **3b**/**3b.1**/
 **3b.2** route and write · **deploy** · **4** the screens · **3c**/**3c.1** the cron · **5**/**5.1** Ask.
 
-Current: **6** Quick Calls and the learning loop implemented; finish live manual verification.
+Current: **7** instant capture and the design pass (`docs/slice-7-spec.md`). Slice 6 is implemented;
+finish its live manual verification alongside.
 The nine offline `quick-calls:check` cases pass without model calls or database connections,
 including rules reaching routing input and disappearing when disabled. No organiser run was made.
 `npm run typecheck`, `npm run lint`, and `npm run build` also pass. `.env` was not edited.
-Next after verification: **7** the grader.
-Banked until there is a real corpus: the organiser-quality pass (B7, O5).
-Post-v1: lint and digest (V2-1).
+Next: **8** accounts, starter folders and organise-on-demand (`docs/slice-8-spec.md`) — the three
+blockers to a handout. Then the organiser-quality pass (RC1 and RC7 first), aimed by what five real
+users break. **9** the grader, moved back from 7: it measures a product with one user (GTM1).
+Post-v1: lint and digest (V2-1), shareable structure (H5/V2-2).
+
+## Turning outward (2026-09-28)
+
+- `docs/first-five.md` — what must be true before five other people can use it, who they are, how much
+  they get, and what is buildable of the instant-capture idea.
+- `docs/design-system.md` — the look, decided once. Both themes, following the system (GTM4).
+- Two blockers found in the code, not on the human's list: a new vault is seeded with *Sahil's* folders
+  and the organiser cannot create more, and the cron only runs twice a day so a new user sees nothing
+  happen for up to twelve hours (GTM8). Both are slice 8.
+- Open fork before slice 8 code: how someone signs in (pasted per-user token vs magic link, GTM9).
+- Assumptions recorded, overturnable in one line: the five are solo founders (GTM7), and the return
+  mechanic is the Quick Calls ritual rather than a streak (GTM6).
 
 ## Last recorded live counts (2026-09-21; not refreshed during slice 6)
 
@@ -68,7 +83,7 @@ spend           $0.473 across 98 model calls, all time
 - **The vault is never server-rendered.** The URL is public; screens fetch with the token (SEC3),
   verified against the live site.
 
-Still on the AI's honour: not inventing *words* when writing note text. Slice 7's grader measures it.
+Still on the AI's honour: not inventing *words* when writing note text. Slice 9's grader measures it.
 
 ## Known issues
 

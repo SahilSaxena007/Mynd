@@ -1353,3 +1353,82 @@ than one label; and where a rule contradicts a folder's description, the user sh
 suggestion time rather than discovering it months later. Whether rules should still win that contest is
 a design question — they probably should, since they are the user's explicit correction, but it must be
 a visible choice rather than a silent one.
+
+---
+
+# 2026-09-28 — Turning outward: the five, the look, and instant capture
+
+### 2026-09-28 — GTM1 Slice 7 is the UI and instant capture; the grader moves to slice 9
+**Why:** the organiser's structure problems (RC1, RC7) are the most important thing wrong with the
+product, and they are still being done last. They have been tuned against Sahil's own 20-note vault
+twice; a third pass would fix what bothers one person and then be re-broken by five. Slices 7 and 8 are
+what make a handout possible, and the five people's misfiles are what aims the quality pass. The grader
+measures a product with one user, so it waits too. Ask is judged good (2026-09-28) and is not touched.
+
+### 2026-09-28 — GTM2 A floating capture button stays unbuilt; `start_url` does most of its job
+**Why:** the Wispr Flow feeling is "press one thing and talk". Two facts narrow it: Mynd records no
+audio (capture is a textarea, dictation is the keyboard's mic), so what is being made instant is
+reaching a focused field; and a true floating overlay needs a native app with an overlay permission on
+Android and is forbidden outright to third-party apps on iPhone — a second codebase for one platform.
+Instead: `start_url` moves from `/` to `/capture` (one line, the largest friction cut in the app),
+manifest `shortcuts`, manifest `share_target` so any Android app can share text into Mynd, and a device
+gesture Sahil configures with no code. Revisit the native widget when there is evidence people capture
+often enough to want it. `AGENTS.md`'s deferral stands.
+
+### 2026-09-28 — GTM3 `share_target` is an Android advantage, not a consolation
+**Why:** Android's share sheet can target an installed PWA; iPhone has no equivalent. So sharing text
+from any app into Mynd is a capture path the iPhone version of this product could not have. It seeds the
+draft only when the draft is empty (the CAP2 instinct — never lose the user's text) and strips its query
+params so a reload cannot re-seed.
+
+### 2026-09-28 — GTM4 Both themes, following the system; `docs/design-system.md` is the source of truth
+**Why:** Sahil's call, over a single dark theme. It roughly doubles the visual decisions and every
+screen must be reviewed twice, which is the cost; the gain is that the app respects the phone's setting,
+which is what a professional tool does. The design doc exists so the values are decided once and Codex
+implements rather than invents — in particular the accent is *lighter* in dark mode, because the
+light-mode purple fails contrast on near-black and that is the usual way a two-theme app ends up broken
+in one of them. The bar is written down deliberately: a stranger glancing over your shoulder asks what
+it is, and a person handed the link does not close it in ten seconds. Not "beautiful", and not a
+redesign every quarter.
+
+### 2026-09-28 — GTM5 The screen is the distribution loop; nothing shareable gets built yet
+**Why:** the three-part frame (repeatable painful problem, a reason to return, a distribution loop) is
+right, and the honest answer on the third part is that a private thought vault has no viral loop.
+Someone asking "what is that?" over your shoulder is not a growth hack here — it is the actual channel,
+and it is bought entirely with the UI pass. That is the commercial case for slice 7. Sharing note
+content is the wrong instinct for a private vault; shareable *structure* (H5/V2-2) and a shareable cited
+Ask answer are the two real candidates, both post-v1. Invite codes come with accounts in slice 8, where
+they are nearly free.
+
+### 2026-09-28 — GTM6 The return mechanic is the Quick Calls ritual, not a streak (assumption)
+**Why:** a capture streak rewards volume over value, and the day it breaks is the day someone stops —
+the opposite of what five trial users need. The Quick Calls queue already exists and is finite and
+completable, which is what makes a task openable; reframed as "3 decisions · about 40 seconds" it is a
+daily ritual rather than a debt. Plus a "since you last looked" line, because visible accretion rewards
+the vault growing instead of the user performing. Both cost zero model calls. The weekly digest (V2-1)
+is the stronger long-term hook and waits until people are actually using the app.
+**Status:** recorded as an assumption — Sahil did not answer this fork and can overturn it in one line.
+
+### 2026-09-28 — GTM7 The first five come from solo founders and builders (assumption)
+**Why:** not a repositioning — only who gets recruited, so five people's feedback points one direction
+instead of five. Solo founders think out loud all day, already live in voice memos, are reachable by
+Sahil because he is one, and talk publicly. The sharper fit is arguably ADHD / executive-function, where
+"keeping a system up is the thing I cannot do" is exactly what auto-filing removes; it is a harder
+community to enter honestly from outside and misfiling costs more there. Recorded in
+`docs/first-five.md` with the selection criteria and the one-at-a-time handout rule.
+**Status:** assumption, unanswered fork, overturnable in one line.
+
+### 2026-09-28 — GTM8 Two blockers found in the code that were not on the human's list
+**Why it matters:** both are first-session killers and both are invisible from the outside.
+`lib/db/seed.ts` seeds *Sahil's* six areas (including `mynd`, a project folder nobody else has) and the
+organiser is forbidden to create folders (F1) — so a new user whose folders do not fit has everything
+land in Inbox forever. And the cron runs only 07:00 and 19:00 UTC, so a new user dumps four thoughts and
+watches nothing happen for up to twelve hours on the one day their attention is highest. Both are slice
+8 (S8-2, S8-3). The second one also means the onboarding call has no payoff moment, which would waste
+slice 7's UI work on a screen showing an empty vault.
+
+### 2026-09-28 — GTM9 Sign-in mechanism is an open fork, to settle before slice 8 code
+**Why:** a per-user pasted token needs no email infrastructure and keeps slice 8 small; a magic link is
+what a normal person expects. For five hand-held users the token is probably enough, but it is a decision
+about how the first impression feels, so it is Sahil's and it comes before any code. Recorded unresolved
+in `docs/slice-8-spec.md`.

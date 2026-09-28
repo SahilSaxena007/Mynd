@@ -9,7 +9,7 @@ Sources: the human's observations on 2026-09-23 (numbered H1–H11 below), plus 
 
 ---
 
-## The six root causes
+## The root causes
 
 ### RC1 — A note is modelled as a string, not as a document with sections
 
@@ -88,6 +88,35 @@ fragments into one Mynd note.
 
 *Direction:* no rule is suggested at all when the topic is `unassigned` or the reason is `not_placed`;
 and the suggestion is phrased from the item's content and the reason it was queued, not from its label.
+
+---
+
+### RC7 — Nothing in the pipeline has a model of *rank*, so a note has no shape
+
+Added 2026-09-27 from the human's use. RC1 says a note should have sections; this says that even with
+sections, nothing decides **what is a heading and what hangs beneath it**, or **what belongs at the
+top**. Two distinct failures, one missing concept:
+
+**7a — no main-item / detail distinction.** A shopping list is a list of *things*; what the user said
+about each thing is subordinate to it. Today both arrive as sibling lines of equal weight, so the item
+and its description read as two separate facts. The note needs `item` → `its detail`, not `line`,
+`line`. Same for a task and its context, a book and why you want it, a person and what you owe them.
+
+**7b — no salience order, and no decision about merging.** When two topics land in one note, nothing
+decides which one leads, and nothing decides what is important enough to surface versus what is
+supporting detail. The result reads as arrival order, which is the one order that carries no meaning.
+Wurman's LATCH is a list of orderings — the point is that *choosing* one is the design act, and the
+organiser currently makes no choice at all.
+
+*Direction:* Stage 1 already sees the intact sentence, so it is where an item can be marked as a
+main item or as detail attached to one (this is the same seam RC4 wants for `intent`/`time`). Stage 2
+then writes into a structure rather than onto the end of a string. Ordering within a section is a
+prompt concern, not a code one — but "main items first, detail nested, newest last within a section"
+has to be written down somewhere as the house rule, or every run invents a different answer.
+
+*The human's ranking (2026-09-27):* RC1 and RC7 are the top two things to fix. Answering (slice 5) is
+judged **good**; organisation is the weak half of the product. That splits the roadmap cleanly —
+Ask needs nothing, the organiser needs structure.
 
 ---
 
