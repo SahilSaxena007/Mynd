@@ -1,5 +1,9 @@
 # docs/design-system.md — how Mynd looks, and the rules that keep it that way
 
+> **Superseded 2026-09-30 (GTM10).** The restyle this describes was built and rejected on 2026-09-28.
+> The baseline is the plain white screens, changed as little as possible, one screen at a time.
+> Kept for history; do not build from it.
+
 Written 2026-09-28. This is the single source of truth for visual decisions, the same way
 `AGENTS.md` is for engineering ones. Codex implements against this file; it does not invent values.
 

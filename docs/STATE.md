@@ -3,8 +3,8 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (140+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-28. **All five paths are working, live.** The build now turns outward:
-slices 7 and 8 are what make it possible to put Mynd in five other people's hands.
+**Last updated:** 2026-09-30. **All five paths are working, live.** Scope is frozen (GTM10): make notes
+readable (slice 7), then watch one real person use Mynd for twenty minutes. Nothing else until then.
 Standing judgement from daily use: **Ask is good; organisation is the weak half.**
 
 **Live URL:** https://mynd-production-c3eb.up.railway.app — phone and laptop, any network, laptop
@@ -30,21 +30,21 @@ Nothing needs a terminal any more. Dictate, and it files itself.
 Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in code · **3b**/**3b.1**/
 **3b.2** route and write · **deploy** · **4** the screens · **3c**/**3c.1** the cron · **5**/**5.1** Ask.
 
-Current: **7** instant capture and the design pass (`docs/slice-7-spec.md`). Slice 6 is implemented;
-finish its live manual verification alongside.
-The nine offline `quick-calls:check` cases pass without model calls or database connections,
-including rules reaching routing input and disappearing when disabled. No organiser run was made.
-`npm run typecheck`, `npm run lint`, and `npm run build` also pass. `.env` was not edited.
-Next: **8** accounts, starter folders and organise-on-demand (`docs/slice-8-spec.md`) — the three
-blockers to a handout. Then the organiser-quality pass (RC1 and RC7 first), aimed by what five real
-users break. **9** the grader, moved back from 7: it measures a product with one user (GTM1).
-Post-v1: lint and digest (V2-1), shareable structure (H5/V2-2).
+Current: **7 — readable notes** (`docs/slice-7-spec.md`, branch `slice-7-readable-notes`): sections the
+organiser inserts into without rewriting (RN1), main item → nested detail, a summary on every note (RN2),
+a readable note page and home in plain white, no debug line, and per-tester folder seeding.
+Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
+their own deployment with folders written for them (GTM11, GTM12).
+After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
+instant capture, archive (GTM13), the grader. Slice 6 still needs its live manual check.
+Parked by GTM10: framework prompt overhaul, multi-platform, share-links, switchable structures.
+Git: work on feature branches; a push to `main` deploys.
 
 ## Turning outward (2026-09-28)
 
 - `docs/first-five.md` — what must be true before five other people can use it, who they are, how much
   they get, and what is buildable of the instant-capture idea.
-- `docs/design-system.md` — the look, decided once. Both themes, following the system (GTM4).
+- `docs/design-system.md` — **superseded** (GTM10): the restyle was rejected; plain white is the baseline.
 - Two blockers found in the code, not on the human's list: a new vault is seeded with *Sahil's* folders
   and the organiser cannot create more, and the cron only runs twice a day so a new user sees nothing
   happen for up to twelve hours (GTM8). Both are slice 8.

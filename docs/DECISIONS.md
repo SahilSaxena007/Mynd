@@ -1432,3 +1432,65 @@ slice 7's UI work on a screen showing an empty vault.
 what a normal person expects. For five hand-held users the token is probably enough, but it is a decision
 about how the first impression feels, so it is Sahil's and it comes before any code. Recorded unresolved
 in `docs/slice-8-spec.md`.
+
+# 2026-09-30 — Scope freeze: readable notes, then one watched user
+
+### 2026-09-30 — GTM10 Scope freeze until one real person has been watched using Mynd
+The next phase is two steps and nothing else: slice 7 (readable notes, `docs/slice-7-spec.md`), then a
+20-minute session watching one heavy capturer who is not a developer dump three thoughts and ask one
+question, with Sahil saying nothing. Parked until after that session: a PARA/Zettelkasten/CODE prompt
+overhaul, multi-platform and desktop editing, share-links and reading link content, switchable
+organisation structures, niche research, the book list. The earlier slice 7 (instant capture + design
+pass) and `docs/design-system.md` are superseded; the plain white screens are the baseline.
+**Why:** after all five paths went live, the pull was toward research and scope — which feels like
+progress and postpones the moment someone might shrug. Every parked item is a guess that one session
+turns into evidence. Readable notes are the single exception because ugly notes would make a user leave
+for the wrong reason and hide whether the core (auto-organise + Ask) lands. Research read and banked
+(BASB/PARA, Meta's organisational second brain, A Pragmatic Mind, Obsibrain, Karpathy's LLM wiki):
+nothing in it changes the next action.
+**Rejected:** a v0.5 programme (structure spine, eval set, bounded folder creation, share target) —
+right direction, wrong time; it is re-cut from the session's evidence.
+
+### 2026-09-30 — RN1 The organiser may insert into a section; it may never rewrite (amends D1, UI2)
+Stage 2 targets `note + section`; Stage 3 inserts the block at the end of that `##` section or creates
+the heading. Code asserts that removing the inserted block reproduces the previous body byte for byte;
+if not, the run writes nothing. Quick Call resolution keeps its end-append.
+**Why:** append-at-end cannot produce a note with more than one section without repeating headings, and
+zero of twenty notes have a heading (RC1). Insertion keeps the property D1 was protecting — no existing
+byte is ever altered or removed — and keeps it in code, not on the model's honour.
+**Rejected:** keep append-only (repeated headings over time); let the organiser rewrite notes (that is
+the v2 tidy pass, RC2, and must be a proposal the user approves).
+
+### 2026-09-30 — RN2 No note is created without a summary
+A new note with an empty summary fails the plan, as an unverified number does. The note page shows the
+summary under the title.
+**Why:** five of twenty notes have no summary, and a note without one is nearly invisible to the next
+routing decision — the direct cause of the two `things to do` notes (A1, RC3).
+
+### 2026-09-30 — GTM11 Test users: heavy capturers who do not tinker with note tools
+People who already capture constantly — voice memos, notes to self, a graveyard of half-used apps —
+and are thoughtful enough to say what they want. Not developers, not PKM power users.
+**Why:** developers and PKM users critique the stack and the folder schema instead of reporting whether
+it is useful. This supersedes GTM7's "solo founders" assumption for the first session. A formal niche
+is chosen from evidence, not research.
+
+### 2026-09-30 — GTM12 Each tester gets their own deployment, seeded with folders Sahil writes for them
+A separate Railway web service, Postgres and cron per tester, same repo, own `SECRET_TOKEN` and spend
+caps. `SEED_FOLDERS_FILE` names a JSON file of that tester's folders (slice 7, R6); Inbox and Journal
+are always added. The folders come from a five-minute concierge chat: what are you working on, what do
+you look after, what do you save.
+**Why:** complete isolation with no multi-user code — a scoping bug cannot show one tester another's
+notes, because there is nothing to scope. The folder set *is* the organiser's model of the user (the
+descriptions carry the grouping rules), so a tester seeded with Sahil's folders would test the wrong
+thing. Writing them by hand is onboarding done by a person first, and how testers describe their own
+lives is the evidence the organiser rebuild needs.
+**Rejected:** real accounts first (slice 8 — right long term, largest change yet, and it would sit in
+front of the first session); a generic starter set (fits nobody, more lands in Inbox); an in-app
+onboarding screen (new code and model work before any signal). Cost is roughly $5–10/month per tester.
+
+### 2026-09-30 — GTM13 Never delete, always archive (principle; not built yet)
+Nothing the user owns — capture, note, folder — is ever deleted by the system or offered as a delete;
+it is archived: hidden from browsing, still reachable, reversible. Captures already cannot be deleted.
+**Why:** both BASB and A Pragmatic Mind converge on it — archiving removes the pressure to decide, and
+it is the same instinct as "nothing is lost". An `archived` state for notes and folders is built when
+tidying or user cleanup is built, not before.

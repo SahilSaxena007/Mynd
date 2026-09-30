@@ -9,6 +9,63 @@ below is ordered by that fact.
 
 ---
 
+## 0. The first session (2026-09-30 — this comes before everything below)
+
+One person, twenty minutes, watched (GTM10). A heavy capturer who is not a developer (GTM11). It runs
+after slice 7 (readable notes) is merged. §1–§5 below are re-cut from what this session shows.
+
+### Before: the five-minute folder chat
+Ask three questions and write down their words, not your summary of them:
+1. What are you working on right now? (projects: things with an end)
+2. What do you look after? (areas: health, money, family, a job, a team)
+3. What do you save or collect? (films, recipes, ideas, quotes, places)
+
+Turn the answers into 4–6 folders in `testers/<name>.json` (copy `testers/example.json`). Each
+`description` says what belongs there **and** a `GROUPING:` rule, the way `lib/db/seed.ts` does
+(e.g. "one checklist note per list; new items append to the existing list"). Inbox and Journal are
+added automatically. How they describe their own life is data: keep the notes.
+
+### Before: their vault (Railway, about 20 minutes; GTM12)
+1. Railway project → **New** → **Database** → **PostgreSQL**. Name it `mynd-<name>-db`.
+2. **New** → **GitHub Repo** → the Mynd repo, branch `main`. Name it `mynd-<name>`.
+3. On that service, **Variables**: copy every variable from the production web service, then change
+   `DATABASE_URL` to reference `mynd-<name>-db`, and set a new long random `SECRET_TOKEN`.
+4. **Settings** → **Networking** → **Generate Domain**. That URL is theirs.
+5. From the laptop, create their tables and folders against the database's *public* URL
+   (Postgres service → **Connect** → public network):
+   ```powershell
+   $env:DATABASE_URL = "<their public database URL>"
+   $env:SEED_FOLDERS_FILE = "testers/<name>.json"
+   npm run vault:print      # MUST fail with a missing-table error. If it prints your notes, STOP.
+   npm run db:migrate
+   npm run db:seed
+   npm run vault:print      # now shows their folders and no notes
+   Remove-Item Env:DATABASE_URL, Env:SEED_FOLDERS_FILE
+   ```
+   The first `vault:print` is the safety check: a brand-new database has no tables, so an error proves
+   you are pointed at theirs. Seeding the wrong database would add their folders to your vault.
+6. Skip the cron service for the first session — you organise live (below). Add one only if they keep
+   using it: same repo, same variables, Restart Policy **Never** (J5), and every future limit change on
+   both services (E8).
+
+### During: the session
+- Put the URL on their phone, paste their token, add it to the home screen. Then stop talking.
+- They dump three thoughts, however they like. When they're done, organise from the laptop:
+  ```powershell
+  $env:DATABASE_URL = "<their public database URL>"; npm run organize:cron; Remove-Item Env:DATABASE_URL
+  ```
+- They open the vault, then ask it one question about what they said.
+
+### The observation rules
+1. Don't explain, pitch or defend. If they ask how something works: "What would you expect?"
+2. Write down every hesitation, every wrong tap, and every word they say out loud, verbatim.
+3. Say the weakness up front, once: "Filing is rough; tell me when it gets something wrong."
+4. At the end, ask about the past, not the future: "When did you last lose a thought you needed?
+   What did you do?" Never ask "would you use this?"
+5. Afterwards, write it up in `DECISIONS.md` as a B-entry the same day, before deciding anything.
+
+---
+
 ## 1. Blocking — it cannot go out without these
 
 ### B-1. More than one person can have a vault
