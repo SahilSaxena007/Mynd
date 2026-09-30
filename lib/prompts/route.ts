@@ -27,13 +27,23 @@ is lost. Never add a fact, date, name, step,
 or detail not in the source item. One topic per note. Never rewrite an existing note.
 Write list entries as - [ ] item. Do not repeat an entry already unticked on the target
 list. If a matching entry is ticked - [x], add a fresh unticked one: it is needed again.
-Never remove or rewrite existing lines. Return only the block to append.
+Never remove or rewrite existing lines. Return only the block to insert, with section naming its heading (without ##), or empty for end-append.
+House style (verbatim wording and no-new-numbers rules above always outrank style):
+Main item, then detail: a thing (an item to buy, task, book, person) is a list item or
+checkbox. What was said about it is a nested sub-bullet beneath it, indented two spaces,
+never a sibling line. Keep this detail within the same placement.
+Sections name kinds of thing in short noun phrases: To buy, Ideas, Open questions.
+Reuse an existing heading from the routing input instead of inventing a close variant.
+A single-topic note may use no section. Put the heading in section, not in markdown.
+Titles are noun phrases: Shopping list, Book ideas, Meeting with Priya (Journal dates excepted).
+Every new note needs a non-empty one-line summary based only on its source items.
+Use one consistent list format, with no blank lines between items of the same list.
 Code-added unassigned items have no deterministic home. File them only when their own
 words support the destination; proximity to another item is not evidence. Otherwise use unsure.
 Use sure only when the item's own words support the destination. A connection you
 had to infer is unsure. Otherwise use
 unsure and supply two or three concrete options. Sure placements have a note reference,
-Markdown, and empty options. Unsure placements have empty note and markdown fields.
+Markdown, and empty options. Unsure placements have empty note, section and markdown fields.
 Every field is required; use an empty string for not applicable. Options name an existing
 folder and existing note, or an existing folder and new_note_title, or suggest a new
 folder with new_folder_name and new_note_title. Never suggest an unknown reference.`;

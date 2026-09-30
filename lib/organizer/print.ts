@@ -9,7 +9,7 @@ export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, input
       const folder = fresh?.folder ?? [...refs.folders.values()].find((folder) => folder.id === existing?.folderId)?.slug;
       console.log(`\n${existing ? "APPEND" : "NEW"} [${folder}] ${existing?.title ?? fresh?.title}`);
       for (const entry of plan.filed.filter((entry) => entry.note === ref)) {
-        console.log(`  ${entry.item.ref} (${entry.item.capture}) [sure]\n${entry.markdown}`);
+        console.log(`  ${entry.item.ref} (${entry.item.capture}) [sure]\n${entry.section ? `## ${entry.section}\n` : ""}${entry.markdown}`);
       }
     }
     for (const call of plan.queued) {

@@ -5,7 +5,7 @@ import { unverifiedNumbers } from "./numbers";
 
 export type ResolvedPlan = {
   newNotes: NewNote[];
-  filed: { item: RunItem; note: string; markdown: string }[];
+  filed: { item: RunItem; note: string; section: string; markdown: string }[];
   queued: (QuickCallInput & { item: string; unverifiedNumbers?: string[] })[];
 };
 
@@ -40,12 +40,12 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
     const validTarget = (existing && [...refs.folders.values()].some((folder) => folder.id === existing.folderId))
       || (declared && refs.folders.has(declared.folder));
     if (placement?.confidence === "sure" && placement.markdown.trim() && validTarget) {
-      const numbers = unverifiedNumbers(placement.markdown, item.text);
+      const numbers = unverifiedNumbers(`${placement.section}\n${placement.markdown}`, item.text);
       if (numbers.length) {
         result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
           reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placement) });
       } else {
-        result.filed.push({ item, note: placement.note, markdown: placement.markdown });
+        result.filed.push({ item, note: placement.note, section: placement.section, markdown: placement.markdown });
       }
     } else {
       result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
