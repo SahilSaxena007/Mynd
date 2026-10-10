@@ -50,7 +50,8 @@ async function main() {
       const cost = [...splits, route].reduce((total, result) => total + estimateCost(result.model, result.usage), 0);
       printPlan(refs, plan, true, route.usage.inputTokens, cost);
       // A replay is deliberately not an applyable dry run.
-      await saveRunRecord({ startedAt: new Date().toISOString(), preview: true, captures, splits, route, plan, cost });
+      await saveRunRecord({ startedAt: new Date().toISOString(), preview: true, captures, splits, route, plan, cost,
+        contentFallbacks: plan.contentFallbacks });
     });
   } catch (error) {
     console.error(formatPreviewError(error)); process.exitCode = 1;

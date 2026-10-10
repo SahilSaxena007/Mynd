@@ -50,7 +50,7 @@ export async function checkOrganizeRuns(pass: (label: string) => void) {
       await run({ routeItems: async (refs) => ({ model, usage, data: {
         new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "shopping" }],
         placements: refs.items.map((item, index) => ({ item: item.ref, note: index ? "N1" : "X1",
-          markdown: item.text, confidence: "sure", subject: "", section: "", options: [] })),
+          markdown: index ? item.text : "Dropped source", confidence: "sure", subject: "", section: "", options: [] })),
       } satisfies RoutePlan }) });
       const record = (await getLastOrganizeRun())!;
       assert.equal(await organizeRunCount(), 1);
@@ -61,6 +61,7 @@ export async function checkOrganizeRuns(pass: (label: string) => void) {
       assert.equal(record.itemsQueued, 0);
       assert.equal(record.notesCreated, 1);
       assert.equal(record.notesAppended, 1);
+      assert.equal(record.contentFallbacks, 1);
       assert.equal(record.error, null);
       assert.equal(record.failedCaptureId, null);
       assert.ok(record.finishedAt >= record.startedAt);
@@ -78,7 +79,7 @@ export async function checkOrganizeRuns(pass: (label: string) => void) {
       const record = (await getLastOrganizeRun())!;
       assert.equal(await organizeRunCount(), 1);
       assert.equal(record.status, "nothing_pending");
-      for (const key of ["capturesProcessed", "itemsFiled", "itemsQueued", "notesCreated", "notesAppended", "costUsd"] as const) {
+      for (const key of ["capturesProcessed", "itemsFiled", "itemsQueued", "notesCreated", "notesAppended", "contentFallbacks", "costUsd"] as const) {
         assert.equal(record[key], 0);
       }
       await noVaultWrites();

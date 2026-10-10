@@ -40,6 +40,7 @@ export type OrganizeRunInput = {
   itemsQueued: number;
   notesCreated: number;
   notesAppended: number;
+  contentFallbacks: number;
   costUsd: number;
   failedCaptureId: string | null;
   error: string | null;

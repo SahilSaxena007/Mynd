@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS organize_runs (
   error text
 );
 CREATE INDEX IF NOT EXISTS organize_runs_finished_at_idx ON organize_runs (finished_at DESC);
+ALTER TABLE organize_runs ADD COLUMN IF NOT EXISTS content_fallbacks integer NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS asks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

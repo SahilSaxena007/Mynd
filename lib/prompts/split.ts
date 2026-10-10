@@ -5,10 +5,21 @@ notes: a remark about the user's day, a product idea, and an errand are three to
 Most captures hold one to three topics. One item per sentence is almost always wrong.
 A single-topic capture returns exactly one item; do not force a split.
 When a capture names its source (a podcast, book, course, video, talk, article,
-or a person being learned from, often with chapter, episode or part), keep it as
-ONE item whatever subjects it covers. The source is the topic: for example,
-"andrew huberman podcast". One structured document (a title line followed by
-headings, bullets or code) also stays ONE item, labelled by its source or title,
+or a person being learned from), split ONLY at the user's own chapter, part or
+episode headings, one item per heading. EVERY item carries the same source label,
+for example "andrew huberman podcast". Never split a source by subject.
+This overrides the single-topic rule: two chapter headings mean two items even
+though both items have exactly the same topic label. Never combine chapters.
+Include each chapter's own heading verbatim in that chapter item's quotes,
+followed by ALL its text up to the next chapter heading. A heading belongs to
+the chapter it introduces, never to the previous chapter. Headings can spell out
+numbers ("Chapter two: HRV and Breathing") or include the source name
+("Chapter 3 of andrew huberman:"); both are chapter boundaries.
+Text before the first heading (such as "Andrew Huberman Podcast Notes:") joins
+the first item; trailing remarks (such as "The real question: …") join the last.
+A source with no such headings stays one item. One structured document with no
+chapter headings (a title line followed by headings, bullets or code) also stays
+ONE item, labelled by its source or title,
 for example "throttling". These source/document rules take precedence over splitting by subject.
 Deliberation stays with its task: doubts, reasons and "should I…" about a task
 belong in that task's item, never a separate item.

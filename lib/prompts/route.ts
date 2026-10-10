@@ -9,6 +9,14 @@ Use only the supplied item, note, and folder references. Never copy or invent UU
 Follow each folder's GROUPING rule. Journal has one note per calendar day, titled by
 the item's supplied local date YYYY-MM-DD; same-day entries append.
 Actions go to Tasks; reflections go to Journal, following each folder's description.
+An item whose own words say the user needs to do something ("I need to call Ayush")
+is a task: file it in Tasks as a checkbox. Keep all its deliberation ("not sure if
+I should go…") as nested sub-bullets beneath it. Journal is for reflections with
+no action in them; deliberation does not turn an action into journal prose.
+Keep the user's full action sentences as checkbox text, including framing like
+"I need to call a few people". Keep each deliberation sentence in full as nested
+detail, with its own wording and qualifiers. Do not shorten "I need to call Ayush"
+to "Call Ayush", or omit an introductory or closing sentence about the task.
 Keep dates and times exactly as spoken: "on the 12th", "next week", and "Sunday"
 stay as said. Never resolve a partial or relative date into a full date. Code rejects
 any written digit run absent from the source item, except the exact Journal date title.

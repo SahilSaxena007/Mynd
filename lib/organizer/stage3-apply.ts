@@ -51,7 +51,7 @@ export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = f
     await lockOrganizerCaptures(refs.captures);
     const targets = await lockOrganizerTargets([...refs.folders.values()].map((folder) => folder.id),
       [...refs.notes.values()].map((note) => note.id));
-    const plan: ResolvedPlan = { newNotes: [], filed: [], queued: [...resolved.queued] };
+    const plan: ResolvedPlan = { newNotes: [], filed: [], queued: [...resolved.queued], contentFallbacks: resolved.contentFallbacks };
     for (const entry of resolved.filed) {
       const existing = refs.notes.get(entry.note);
       const fresh = resolved.newNotes.find((note) => note.ref === entry.note);

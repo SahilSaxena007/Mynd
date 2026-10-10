@@ -25,6 +25,7 @@ import { suggestedRule } from "../lib/quick-call-rule";
 import { withDatabase } from "../lib/db/client";
 import { quickCallsCheckDatabase } from "../lib/db/quick-calls-check-support";
 import { insertQuickCall } from "../lib/db/queries";
+import { checkContentCoverage } from "./content-coverage-check";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -35,7 +36,7 @@ const note: Note = { id: "note", folderId: folder.id, title: "things to buy", su
   body: "- [ ] bread", createdAt: date, updatedAt: date };
 const item = { topic: "things to buy", quotes: ["buy milk"], unassigned: false };
 const refs = buildRefs([capture], [folder], [note], [], [[item]], "Europe/London");
-const sure: Placement = { item: "I1", confidence: "sure", subject: "", section: "", note: "N1", markdown: "- [ ] milk", options: [] };
+const sure: Placement = { item: "I1", confidence: "sure", subject: "", section: "", note: "N1", markdown: "- [ ] buy milk", options: [] };
 const empty: RoutePlan = { new_notes: [], placements: [] };
 let passed = 0;
 function pass(label: string) { console.log(`PASS ${++passed}: ${label}`); }
@@ -55,6 +56,7 @@ async function main() {
   globalThis.fetch = async () => { requests++; throw new Error("HTTP is forbidden in organize:check"); };
   try {
     checkReadableNotes(pass);
+    checkContentCoverage(refs, pass);
     const subject = "notes from the Andrew Huberman podcast";
     const queuedPlan = resolveCoverage(refs, { ...empty,
       placements: [{ ...sure, confidence: "unsure", subject, note: "", markdown: "" }] });
@@ -103,7 +105,7 @@ async function main() {
       assert.equal(result.filed.length, 0);
       assert.equal(result.queued[0].reason, "invalid_target");
     }
-    assert.equal(resolveCoverage(refs, { ...empty, placements: [{ ...sure, markdown: " " }] }).queued[0].reason, "invalid_target");
+    assert.equal(resolveCoverage(refs, { ...empty, placements: [{ ...sure, markdown: " " }] }).filed[0].markdown, "buy milk");
     pass("unknown folders/notes and unissued new refs demoted");
 
     result = resolveCoverage(refs, { ...empty, placements: [{ ...sure, item: "I999" }, sure] });
@@ -251,11 +253,11 @@ async function main() {
       assert.equal(applied.queued.find((call) => call.item === "I4")?.reason, "invalid_target");
       assert.equal(applied.filed.length + applied.queued.length, run.items.length);
       const appended = await getNote(existing.id);
-      assert.equal(appended?.body, "original bytes\nappended block");
+      assert.equal(appended?.body, "original bytes\nbuy milk");
       assert.equal(appended?.title, existing.title);
       assert.equal(appended?.summary, existing.summary);
       const created = (await getNotesWithBodies()).find((entry) => entry.id !== existing.id);
-      assert.equal(created?.body, "first block\n\nsecond block");
+      assert.equal(created?.body, "buy milk\n\nbuy milk");
       assert.deepEqual(await organizeRowCounts(), { notes: 2, sources: 3, calls: 2, modelCalls: 0 });
       assert.deepEqual(await getPendingCaptures(), []);
     });
@@ -290,7 +292,7 @@ async function main() {
         const plan = resolveCoverage(run, numberPlan("2026-09-12"));
         const file = join(directory, "added-detail.json");
         const saved = savedPlan(run, plan);
-        const legacyPlan = { newNotes: numberPlan("2026-09-12").new_notes,
+        const legacyPlan = { contentFallbacks: 0, newNotes: numberPlan("2026-09-12").new_notes,
           filed: [{ item: run.items[0], note: "X1", section: "", markdown: "2026-09-12" }], queued: [] };
         assert.throws(() => savedPlan(run, legacyPlan), /unverified numbers/);
         await writeFile(file, JSON.stringify({ ...saved, plan: legacyPlan }));
@@ -311,18 +313,18 @@ async function main() {
         const existing = await createNote({ folderId: area.id, title: "existing", body: "original bytes" });
         const run = buildRefs([stored], [area], [existing], [], [[item, item, item]], "Europe/London");
         const plan = resolveCoverage(run, { new_notes: [{ ref: "X1", folder: "personal", title: "reviewed title", summary: "reviewed summary" }],
-          placements: [{ ...sure, note: "X1", markdown: "- [ ] milk, but I am not sure" },
-            { ...sure, item: "I2", markdown: "reviewed append\nwith line breaks" }] });
+          placements: [{ ...sure, note: "X1", markdown: "- [ ] buy milk, but I am not sure" },
+            { ...sure, item: "I2", markdown: "buy milk\nwith line breaks" }] });
         const file = join(directory, "dry.json");
         const saved = savedPlan(run, plan);
         await writeFile(file, JSON.stringify(saved));
         assert.deepEqual(await applySavedRun(file, directory), plan);
         const notes = await getNotesWithBodies();
-        assert.equal(notes.find((note) => note.id === existing.id)?.body, "original bytes\nreviewed append\nwith line breaks");
+        assert.equal(notes.find((note) => note.id === existing.id)?.body, "original bytes\nbuy milk\nwith line breaks");
         const fresh = notes.find((note) => note.id !== existing.id)!;
         assert.equal(fresh.title, "reviewed title");
         assert.equal(fresh.summary, "reviewed summary");
-        assert.equal(fresh.body, "- [ ] milk, but I am not sure");
+        assert.equal(fresh.body, "- [ ] buy milk, but I am not sure");
         const calls = await listOpenQuickCalls();
         assert.equal(calls[0].itemText, plan.queued[0].itemText);
         assert.equal(calls[0].reason, plan.queued[0].reason);

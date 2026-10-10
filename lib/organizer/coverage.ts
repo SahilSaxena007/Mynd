@@ -2,8 +2,10 @@ import type { QuickCallInput, QuickCallOption } from "../db/types";
 import type { RunItem, RunRefs } from "./refs";
 import type { NewNote, Placement, RoutePlan } from "./route-types";
 import { unverifiedNumbers } from "./numbers";
+import { hasDroppedContent } from "./content-coverage";
 
 export type ResolvedPlan = {
+  contentFallbacks: number;
   newNotes: NewNote[];
   filed: { item: RunItem; note: string; section: string; markdown: string }[];
   queued: (QuickCallInput & { item: string; unverifiedNumbers?: string[] })[];
@@ -29,7 +31,7 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
   for (const placement of plan.placements) {
     if (issuedItems.has(placement.item) && !placements.has(placement.item)) placements.set(placement.item, placement);
   }
-  const result: ResolvedPlan = { newNotes: [], filed: [], queued: [] };
+  const result: ResolvedPlan = { newNotes: [], filed: [], queued: [], contentFallbacks: 0 };
   const optionsFor = (placement: Placement | undefined) => (placement?.options ?? [])
     .filter((option) => validOption(option, refs)).slice(0, 3)
     .map((option) => ({ ...option, note: option.note ? refs.notes.get(option.note)!.id : "" }));
@@ -39,13 +41,16 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
     const declared = placement && declarations.get(placement.note);
     const validTarget = (existing && [...refs.folders.values()].some((folder) => folder.id === existing.folderId))
       || (declared && refs.folders.has(declared.folder));
-    if (placement?.confidence === "sure" && placement.markdown.trim() && validTarget) {
+    if (placement?.confidence === "sure" && validTarget) {
       const numbers = unverifiedNumbers(`${placement.section}\n${placement.markdown}`, item.text);
       if (numbers.length) {
         result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
           subject: "", reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placement) });
       } else {
-        result.filed.push({ item, note: placement.note, section: placement.section, markdown: placement.markdown });
+        const fallback = hasDroppedContent(item.text, placement.markdown, existing?.body);
+        if (fallback) result.contentFallbacks++;
+        result.filed.push({ item, note: placement.note, section: placement.section,
+          markdown: fallback ? item.text : placement.markdown });
       }
     } else {
       result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,

@@ -147,17 +147,17 @@ export async function insertOrganizeRun(input: OrganizeRunInput): Promise<void> 
   // DM11: fail closed if a caller would let rollback erase the run's history.
   assertOutsideTransaction();
   await query(`INSERT INTO organize_runs (trigger, status, started_at, captures_processed,
-    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error, content_fallbacks)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
   [input.trigger, input.status, input.startedAt, input.capturesProcessed, input.itemsFiled,
-    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error]);
+    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error, input.contentFallbacks]);
 }
 
 export async function getLastOrganizeRun(): Promise<OrganizeRun | null> {
   return (await query<OrganizeRun>(`SELECT id, trigger, status, started_at AS "startedAt",
     finished_at AS "finishedAt", captures_processed AS "capturesProcessed", items_filed AS "itemsFiled",
     items_queued AS "itemsQueued", notes_created AS "notesCreated", notes_appended AS "notesAppended",
-    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error
+    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error, content_fallbacks AS "contentFallbacks"
     FROM organize_runs ORDER BY finished_at DESC, id DESC LIMIT 1`)).rows[0] ?? null;
 }
 

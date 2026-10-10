@@ -35,6 +35,9 @@ function assertSavedNumbers(refs: RunRefs, plan: ResolvedPlan) {
   if (checked.filed.length !== plan.filed.length) {
     throw new Error("Saved plan contains unverified numbers; review a new dry run before applying.");
   }
+  if (checked.contentFallbacks) {
+    throw new Error("Saved plan contains dropped content; review a new dry run before applying.");
+  }
 }
 
 export function savedPlan(refs: RunRefs, plan: ResolvedPlan) {
@@ -60,6 +63,7 @@ const validateSaved = new Ajv({ strict: true }).compile<{ version: number; dry: 
       items: array(itemSchema), newNoteRefs: array(string), rules: array({ type: "object" }),
     }),
     plan: object({
+      contentFallbacks: { type: "integer", minimum: 0 },
       newNotes: array(object(strings(["ref", "folder", "title", "summary"]))),
       filed: array(object({ item: itemSchema, ...strings(["note", "section", "markdown"]) })),
       queued: array(object({ ...strings(["item", "captureId", "topic", "itemText", "subject"]),
@@ -91,6 +95,7 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
   assertResolvedPlan(refs, data.plan);
   assertSavedNumbers(refs, data.plan);
   const run = newRunRecord("manual");
+  run.contentFallbacks = data.plan.contentFallbacks;
   let plan: ResolvedPlan;
   try {
     plan = await applyPlan(refs, data.plan, true);
@@ -104,7 +109,7 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
     catch { throw new Error(runError("record", null)); }
   }
   await saveRunRecord({ startedAt: new Date().toISOString(), dry: false, applied: true,
-    appliedFrom: resolve(file), plan, refs: raw, modelCalls: 0, cost: 0 }, directory);
+    appliedFrom: resolve(file), plan, refs: raw, modelCalls: 0, cost: 0, contentFallbacks: plan.contentFallbacks }, directory);
   console.log(`Applied exactly the saved plan from ${file}; zero model calls.`);
   return plan;
 }
@@ -125,7 +130,7 @@ export async function runOrganize(
   stages = { splitCapture, routeItems },
 ) {
   const run = newRunRecord(trigger);
-  const record: Record<string, unknown> = { startedAt: run.startedAt.toISOString(), dry, splitPrompt, routePrompt };
+  const record: Record<string, unknown> = { startedAt: run.startedAt.toISOString(), dry, splitPrompt, routePrompt, contentFallbacks: 0 };
   const splits: Awaited<ReturnType<typeof splitCapture>>[] = [];
   record.splits = splits;
   let stage: OrganizeStage = "configure";
@@ -184,6 +189,8 @@ export async function runOrganize(
       record.route = route;
       stage = "coverage";
       let plan = resolveCoverage(refs, route.data);
+      run.contentFallbacks = plan.contentFallbacks;
+      record.contentFallbacks = plan.contentFallbacks;
       record.plan = plan;
       if (dry) Object.assign(record, savedPlan(refs, plan));
       const results = [...splits, ...(truncated ? [truncated] : []), route];

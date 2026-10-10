@@ -2,7 +2,7 @@ export type SplitItem = { topic: string; quotes: string[]; unassigned: boolean }
 export type ModelSplitItem = { topic: string; quotes: string[] };
 type Span = { start: number; end: number };
 
-function sentences(text: string): Span[] {
+export function sentences(text: string): Span[] {
   const result: Span[] = [];
   let start = 0;
   for (let at = 0; at < text.length; at++) {
