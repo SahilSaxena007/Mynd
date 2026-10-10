@@ -2,7 +2,7 @@ import type { QuickCallOption } from "../db/types";
 
 export type NewNote = { ref: string; folder: string; title: string; summary: string };
 export type Placement = {
-  item: string; confidence: "sure" | "unsure"; note: string; section: string; markdown: string; options: QuickCallOption[];
+  item: string; confidence: "sure" | "unsure"; subject: string; note: string; section: string; markdown: string; options: QuickCallOption[];
 };
 export type RoutePlan = { new_notes: NewNote[]; placements: Placement[] };
 
@@ -13,7 +13,7 @@ const object = (properties: Record<string, object>) => ({
 export const routeSchema = object({
   new_notes: { type: "array", items: object(strings(["ref", "folder", "title", "summary"])) },
   placements: { type: "array", items: object({
-    ...strings(["item", "note", "section", "markdown"]), confidence: { type: "string", enum: ["sure", "unsure"] },
+    ...strings(["item", "note", "section", "markdown", "subject"]), confidence: { type: "string", enum: ["sure", "unsure"] },
     options: { type: "array", items: object(strings(["label", "folder", "note", "new_note_title", "new_folder_name"])) },
   }) },
 });

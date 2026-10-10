@@ -12,10 +12,10 @@ export const GET = withAuth(async () => {
     if (option.new_folder_name) {
       label = `${option.new_folder_name} — choose an existing folder using Somewhere else`;
     } else if (folder && note && note.folderId === folder.id) {
-      label = `${folder.name} · ${note.title}`;
+      label = `Add to: ${note.title} (in ${folder.name})`;
       resolution = { action: "file", noteId: note.id };
     } else if (folder && !option.note && option.new_note_title.trim()) {
-      label = `${folder.name} · new note “${option.new_note_title}”`;
+      label = `New note: ${option.new_note_title} (in ${folder.name})`;
       resolution = { action: "file", folderId: folder.id, newNoteTitle: option.new_note_title };
     } else {
       label = `${label || "Suggested destination"} — unavailable; choose Somewhere else`;

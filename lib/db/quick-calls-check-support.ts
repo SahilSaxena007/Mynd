@@ -12,7 +12,7 @@ export function quickCallsCheckDatabase() {
     color: null, parentId: null, createdAt: date };
   const note: Note = { id: checkId(2), folderId: folder.id, title: "thoughts", summary: null,
     body: "Existing bytes.  \n", createdAt: date, updatedAt: date };
-  const call: QuickCall = { id: checkId(4), captureId: checkId(3), topic: "shopping items",
+  const call: QuickCall = { id: checkId(4), captureId: checkId(3), topic: "shopping items", subject: "face creams and skin care supplies",
     itemText: "  face creams\nwith SPF 30 — maybe.  ", options: [], reason: "unsure",
     status: "open", createdAt: date, resolvedAt: null };
   let state = { folders: [folder], notes: [note, { ...note, id: checkId(5), title: "things to buy", body: "- [x] Cable" }],
@@ -26,6 +26,14 @@ export function quickCallsCheckDatabase() {
     events.push(text);
     if (failAt && text.startsWith(failAt)) { failAt = ""; throw new Error("Injected write failure"); }
     const rows = (items: unknown[]) => ({ rows: structuredClone(items), rowCount: items.length });
+    if (text.startsWith("INSERT INTO quick_calls ")) {
+      assert.match(text, /\(capture_id, topic, item_text, options, reason, subject\) VALUES \(\$1, \$2, \$3, \$4::jsonb, \$5, \$6\)/);
+      const fresh: QuickCall = { ...call, id: checkId(nextId++), captureId: String(values[0]),
+        topic: String(values[1]), itemText: String(values[2]), options: JSON.parse(String(values[3])),
+        reason: values[4] as QuickCall["reason"], subject: String(values[5]) };
+      state.calls.push(fresh);
+      return rows([fresh]);
+    }
     if (text.startsWith("SELECT ") && text.includes(" FROM quick_calls ")) {
       if (text.includes("WHERE id = $1")) {
         assert.ok(inTransaction);

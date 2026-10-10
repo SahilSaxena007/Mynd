@@ -40,6 +40,7 @@ export type OrganizeRunInput = {
   itemsQueued: number;
   notesCreated: number;
   notesAppended: number;
+  contentFallbacks: number;
   costUsd: number;
   failedCaptureId: string | null;
   error: string | null;
@@ -97,7 +98,7 @@ export type QuickCallOption = {
   label: string; folder: string; note: string; new_note_title: string; new_folder_name: string;
 };
 export type QuickCallInput = {
-  captureId: string; topic: string; itemText: string; options: QuickCallOption[];
+  captureId: string; topic: string; subject: string; itemText: string; options: QuickCallOption[];
   reason: "unsure" | "invalid_target" | "not_placed" | "added_detail";
 };
 export type QuickCall = QuickCallInput & {

@@ -70,12 +70,12 @@ export async function getNotesWithBodies(): Promise<Note[]> {
 }
 
 const quickCallColumns = `id, capture_id AS "captureId", topic, item_text AS "itemText",
-  options, reason, status, created_at AS "createdAt", resolved_at AS "resolvedAt"`;
+  subject, options, reason, status, created_at AS "createdAt", resolved_at AS "resolvedAt"`;
 
 export async function insertQuickCall(input: QuickCallInput): Promise<QuickCall> {
-  return (await query<QuickCall>(`INSERT INTO quick_calls (capture_id, topic, item_text, options, reason)
-    VALUES ($1, $2, $3, $4::jsonb, $5) RETURNING ${quickCallColumns}`,
-  [input.captureId, input.topic, input.itemText, JSON.stringify(input.options), input.reason])).rows[0];
+  return (await query<QuickCall>(`INSERT INTO quick_calls (capture_id, topic, item_text, options, reason, subject)
+    VALUES ($1, $2, $3, $4::jsonb, $5, $6) RETURNING ${quickCallColumns}`,
+  [input.captureId, input.topic, input.itemText, JSON.stringify(input.options), input.reason, input.subject])).rows[0];
 }
 
 export async function listOpenQuickCalls(): Promise<QuickCall[]> {
@@ -147,17 +147,17 @@ export async function insertOrganizeRun(input: OrganizeRunInput): Promise<void> 
   // DM11: fail closed if a caller would let rollback erase the run's history.
   assertOutsideTransaction();
   await query(`INSERT INTO organize_runs (trigger, status, started_at, captures_processed,
-    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error, content_fallbacks)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
   [input.trigger, input.status, input.startedAt, input.capturesProcessed, input.itemsFiled,
-    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error]);
+    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error, input.contentFallbacks]);
 }
 
 export async function getLastOrganizeRun(): Promise<OrganizeRun | null> {
   return (await query<OrganizeRun>(`SELECT id, trigger, status, started_at AS "startedAt",
     finished_at AS "finishedAt", captures_processed AS "capturesProcessed", items_filed AS "itemsFiled",
     items_queued AS "itemsQueued", notes_created AS "notesCreated", notes_appended AS "notesAppended",
-    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error
+    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error, content_fallbacks AS "contentFallbacks"
     FROM organize_runs ORDER BY finished_at DESC, id DESC LIMIT 1`)).rows[0] ?? null;
 }
 
@@ -195,6 +195,10 @@ const editableNoteColumns = `id, folder_id AS "folderId", title, summary, body,
   created_at AS "createdAt",
   to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAt"`;
 type EditableNote = Omit<Note, "updatedAt"> & { updatedAt: string };
+
+export async function getEditableNotes(): Promise<EditableNote[]> {
+  return (await query<EditableNote>(`SELECT ${editableNoteColumns} FROM notes ORDER BY created_at, id`)).rows;
+}
 
 export function getNote(id: string): Promise<Note | null>;
 export function getNote(id: string, forEditing: true): Promise<EditableNote | null>;

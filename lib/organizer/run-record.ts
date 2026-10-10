@@ -22,7 +22,7 @@ export function runError(stage: OrganizeStage, error: unknown): string {
 
 export function newRunRecord(trigger: OrganizeRunInput["trigger"]): OrganizeRunInput {
   return { trigger, status: "failed", startedAt: new Date(), capturesProcessed: 0, itemsFiled: 0,
-    itemsQueued: 0, notesCreated: 0, notesAppended: 0, costUsd: 0, failedCaptureId: null, error: null };
+    itemsQueued: 0, notesCreated: 0, notesAppended: 0, contentFallbacks: 0, costUsd: 0, failedCaptureId: null, error: null };
 }
 
 export function appliedCounts(refs: RunRefs, plan: ResolvedPlan) {

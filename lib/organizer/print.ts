@@ -22,6 +22,7 @@ export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, input
     `${reason} ${plan.queued.filter((call) => call.reason === reason).length}`).join(", ");
   const appended = new Set(plan.filed.filter((entry) => refs.notes.has(entry.note)).map((entry) => entry.note)).size;
   console.log(`\nitems ${refs.items.length} | filed ${plan.filed.length} | queued ${plan.queued.length} (${counts})`);
+  console.log(`contentFallbacks ${plan.contentFallbacks}`);
   console.log(`sure rate ${refs.items.length ? Math.round(100 * plan.filed.length / refs.items.length) : 0}% (target ~90%)`
     + ` | new notes ${plan.newNotes.length} | appended ${appended} | captures ${dry ? "would process" : "processed"} ${refs.captures.length}`);
   console.log(`stage 2 input ${inputTokens.toLocaleString("en-GB")} tokens | thinking ${thinkingTokens} tokens | run cost $${cost.toFixed(6)}`);

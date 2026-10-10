@@ -33,7 +33,7 @@ export function assertResolvedPlan(refs: RunRefs, plan: ResolvedPlan): void {
   for (const call of plan.queued) {
     const item = items.get(call.item);
     if (!item || accounted.has(call.item) || call.captureId !== item.captureId
-      || call.topic !== item.topic || call.itemText !== item.text || call.options.length > 3) fail();
+      || typeof call.subject !== "string" || call.topic !== item.topic || call.itemText !== item.text || call.options.length > 3) fail();
     for (const option of call.options) {
       const note = [...refs.notes.values()].find((note) => note.id === option.note);
       if ((option.folder && !refs.folders.has(option.folder)) || (option.note && !note)
@@ -51,7 +51,7 @@ export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = f
     await lockOrganizerCaptures(refs.captures);
     const targets = await lockOrganizerTargets([...refs.folders.values()].map((folder) => folder.id),
       [...refs.notes.values()].map((note) => note.id));
-    const plan: ResolvedPlan = { newNotes: [], filed: [], queued: [...resolved.queued] };
+    const plan: ResolvedPlan = { newNotes: [], filed: [], queued: [...resolved.queued], contentFallbacks: resolved.contentFallbacks };
     for (const entry of resolved.filed) {
       const existing = refs.notes.get(entry.note);
       const fresh = resolved.newNotes.find((note) => note.ref === entry.note);
@@ -62,7 +62,7 @@ export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = f
       } else {
         if (exact) throw new Error("Saved plan target is missing or changed; nothing was written.");
         plan.queued.push({ item: entry.item.ref, captureId: entry.item.captureId, topic: entry.item.topic,
-          itemText: entry.item.text, reason: "invalid_target", options: [] });
+          itemText: entry.item.text, subject: "", reason: "invalid_target", options: [] });
       }
     }
     plan.newNotes = resolved.newNotes.filter((note) => plan.filed.some((entry) => entry.note === note.ref));

@@ -74,15 +74,16 @@ const cases: [string, () => void][] = [
     assert.equal(result.items.length, 1);
     assert.equal(result.absorbedSpans.singleHome, 1);
   }],
-  ["Sentence between different items remains unassigned", () => {
+  ["Sentence between different items joins the preceding item", () => {
     const source = "Work. Maybe this belongs elsewhere. Home.";
     const result = completeSplit(source, [item(["Work."], "work"), item(["Home."], "home")]);
-    assert.deepEqual(result.items[1], unassigned(" Maybe this belongs elsewhere."));
+    assert.deepEqual(result.items[0].quotes, ["Work. Maybe this belongs elsewhere."]);
+    assert.equal(result.absorbedSpans.toPrevious, 1);
     assert.equal(result.absorbedSpans.singleHome, 0);
     assert.equal(result.items.flatMap((entry) => entry.quotes).join(""), source);
     // A sentence claimed by multiple items is not a single possible home either.
     const mixed = completeSplit("Work and home. Unclear. Home.", [item(["Work"], "work"), item(["home", "Home."], "home")]);
-    assert.equal(mixed.items.find((entry) => entry.unassigned)?.quotes[0], " Unclear.");
+    assert.equal(mixed.items.some((entry) => entry.unassigned), false);
   }],
   ["First and last unclaimed sentences join their only neighbour", () => {
     const source = "Opening. Claimed. Closing.";
@@ -97,9 +98,22 @@ const cases: [string, () => void][] = [
     assert.deepEqual(result.items[0].quotes, [source]);
     assert.equal(result.items.length, 1);
     const separate = completeSplit("Work\nUnknown\nHome", [item(["Work"], "work"), item(["Home"], "home")]);
-    assert.deepEqual(separate.items[1], unassigned("Unknown\n"));
+    assert.deepEqual(separate.items[0].quotes, ["Work\nUnknown\n"]);
   }],
 ];
+
+for (const [gap, heading] of [["Chapter 3:", true], ["# Chapter 3", true], ["**Bucket4j**", true], ["? Now I know what to speak to him about.", false]] as const) {
+  cases.push([`Remainder ${gap} joins ${heading ? "next" : "previous"}`, () => {
+    const source = `Work.\n${gap}\nHome.`;
+    const result = completeSplit(source, [item(["Work.\n"], "work"), item(["Home."], "home")]);
+    assert.equal(result.items.length, 2);
+    assert.equal(result.items.some((entry) => entry.unassigned), false);
+    assert.ok(result.items[heading ? 1 : 0].quotes.join("").includes(gap));
+    assert.equal(result.absorbedSpans[heading ? "headingToNext" : "toPrevious"], 1);
+    assert.equal(result.items.flatMap((entry) => entry.quotes).join(""), source);
+    for (const quote of result.items.flatMap((entry) => entry.quotes)) assert.ok(source.includes(quote));
+  }]);
+}
 
 for (const [name, check] of cases) {
   check();
@@ -114,4 +128,4 @@ assert.equal(formatPreviewError(new Error("Model call refused: DAILY_CALL_CAP ex
 assert.equal(formatPreviewError(new SyntaxError("private capture text")), "FAIL: SyntaxError");
 assert.equal(formatPreviewError(new Error("private capture text")), "FAIL: Error");
 console.log("PASS: Error visibility and unknown-message redaction");
-console.log("PASS: All 12 coverage cases; zero model calls (no model or database imports).");
+console.log(`PASS: All ${cases.length} coverage cases; zero model calls (no model or database imports).`);

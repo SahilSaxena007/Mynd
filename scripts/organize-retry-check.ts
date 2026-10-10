@@ -36,7 +36,7 @@ export async function checkOrganizeRetry(pass: (label: string) => void) {
       error: { type: "rate_limit_error", message: "PRIVATE_ERROR_CANARY" } }), { status: 429 });
     const plan = { new_notes: [{ ref: "X1", folder: "personal", title: "test note", summary: "test" }],
       placements: input.items.map((item: { ref: string; text: string }) => ({ item: item.ref,
-        note: "X1", markdown: item.text, confidence: "sure", section: "", options: [] })) };
+        note: "X1", markdown: item.text, confidence: "sure", subject: "", section: "", options: [] })) };
     return new Response(JSON.stringify({ id: "fake", type: "message", role: "assistant", model: request.model,
       content: [{ type: "text", text: outcome === "schema" ? "{}" : JSON.stringify(plan) }],
       stop_reason: outcome === "max_tokens" || outcome === "refusal" ? outcome : "end_turn",

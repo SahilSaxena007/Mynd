@@ -30,9 +30,11 @@ Nothing needs a terminal any more. Dictate, and it files itself.
 Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in code · **3b**/**3b.1**/
 **3b.2** route and write · **deploy** · **4** the screens · **3c**/**3c.1** the cron · **5**/**5.1** Ask.
 
-Current: **7 — readable notes** (`docs/slice-7-spec.md`, branch `slice-7-readable-notes`): sections the
-organiser inserts into without rewriting (RN1), main item → nested detail, a summary on every note (RN2),
-a readable note page and home in plain white, no debug line, and per-tester folder seeding.
+Done: **7** readable notes (B16, merged 2026-10-10).
+Current: **7.1 — the organiser stops fragmenting, plus a to-do view** (`docs/slice-7-1-spec.md`, branch
+`slice-7-1-organiser-fixes`): leftovers join a neighbour (OG3), a source stays one note with chapter
+sections (OG2), a Learning folder (OG1), a saner unsure bar (OG4), content-written rules (OG5), home
+cards restored, and `To do (N)` (TD1). Order agreed in GTM14: fix, to-do view, slight UI, then the tester.
 Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
 their own deployment with folders written for them (GTM11, GTM12).
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),

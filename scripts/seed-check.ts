@@ -10,7 +10,7 @@ async function main() {
   try {
     delete process.env.SEED_FOLDERS_FILE;
     assert.deepEqual(await loadSeedFolders(), SEED_FOLDERS);
-    assert.equal((await loadSeedFolders()).length, 6);
+    assert.equal((await loadSeedFolders()).length, 7);
     const file = join(directory, "folders.json");
     process.env.SEED_FOLDERS_FILE = file;
     const custom = { name: "Garden", slug: "garden", color: "#7a9c73", description: "Garden projects." };
@@ -34,7 +34,7 @@ async function main() {
     await writeFile(file, "not JSON");
     await assert.rejects(loadSeedFolders());
     await assert.rejects(loadSeedFolders(join(directory, "missing.json")));
-    console.log("PASS seed: custom folders and defaults, reserved slugs, invalid fields/files, unset six; no database writes.");
+    console.log("PASS seed: custom folders and defaults, reserved slugs, invalid fields/files, unset seven; no database writes.");
   } finally {
     if (previous === undefined) delete process.env.SEED_FOLDERS_FILE;
     else process.env.SEED_FOLDERS_FILE = previous;

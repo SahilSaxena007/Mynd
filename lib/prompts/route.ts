@@ -9,10 +9,28 @@ Use only the supplied item, note, and folder references. Never copy or invent UU
 Follow each folder's GROUPING rule. Journal has one note per calendar day, titled by
 the item's supplied local date YYYY-MM-DD; same-day entries append.
 Actions go to Tasks; reflections go to Journal, following each folder's description.
+An item whose own words say the user needs to do something ("I need to call Ayush")
+is a task: file it in Tasks as a checkbox. Keep all its deliberation ("not sure if
+I should go…") as nested sub-bullets beneath it. Journal is for reflections with
+no action in them; deliberation does not turn an action into journal prose.
+Keep the user's full action sentences as checkbox text, including framing like
+"I need to call a few people". Keep each deliberation sentence in full as nested
+detail, with its own wording and qualifiers. Do not shorten "I need to call Ayush"
+to "Call Ayush", or omit an introductory or closing sentence about the task.
 Keep dates and times exactly as spoken: "on the 12th", "next week", and "Sunday"
 stay as said. Never resolve a partial or relative date into a full date. Code rejects
 any written digit run absent from the source item, except the exact Journal date title.
-One theme per note: never merge two different ideas. If a title would need "and"
+For named sources, use ONE note per source, titled by the source ("Andrew Huberman podcast"),
+in the folder whose description covers it (Learning for learning material).
+Later items about the same source append to that note: match the source name in
+titles and labels, not its subject matter, including new notes declared in this run.
+Inside that note use one section per chapter or part, using the user's own heading
+("Chapter 3", "Chapter 4: Yoga Mudra and Sleep"). Target the existing section for
+a second capture about the same chapter. A structured document is one note;
+its own headings become sections. Preserve those headings in markdown when a single
+document item contains multiple sections; do not repeat a heading supplied in section.
+The source or document is the theme even when it covers several subjects.
+Otherwise, one theme per note: never merge two different ideas. If a title would need "and"
 to join two themes, it is two notes. Items from the same capture that continue one
 line of thought go to the same note; a continuing thought stays together.
 Link across captures only when their own words show they share a subject. Arriving
@@ -32,6 +50,8 @@ House style (verbatim wording and no-new-numbers rules above always outrank styl
 Main item, then detail: a thing (an item to buy, task, book, person) is a list item or
 checkbox. What was said about it is a nested sub-bullet beneath it, indented two spaces,
 never a sibling line. Keep this detail within the same placement.
+For a task with deliberation, use a checkbox and put its doubts, reasons and
+"should I…" deliberation in nested sub-bullets under that checkbox.
 Sections name kinds of thing in short noun phrases: To buy, Ideas, Open questions.
 Reuse an existing heading from the routing input instead of inventing a close variant.
 A single-topic note may use no section. Put the heading in section, not in markdown.
@@ -40,10 +60,13 @@ Every new note needs a non-empty one-line summary based only on its source items
 Use one consistent list format, with no blank lines between items of the same list.
 Code-added unassigned items have no deterministic home. File them only when their own
 words support the destination; proximity to another item is not evidence. Otherwise use unsure.
-Use sure only when the item's own words support the destination. A connection you
-had to infer is unsure. Otherwise use
-unsure and supply two or three concrete options. Sure placements have a note reference,
-Markdown, and empty options. Unsure placements have empty note, section and markdown fields.
+Use sure when the item's own words, or a clearly matching existing note or folder
+description, show where it goes. Use unsure only when two destinations are genuinely
+plausible or nothing fits. Never ask about a heading, a fragment or a continuation.
+For unsure supply two or three concrete options, and subject: 4–10 words naming
+what the item is from its content ("notes from the Andrew Huberman podcast",
+"a Java rate-limiting explainer"). Sure placements have a note reference,
+Markdown, empty subject and empty options. Unsure placements have empty note, section and markdown fields.
 Every field is required; use an empty string for not applicable. Options name an existing
 folder and existing note, or an existing folder and new_note_title, or suggest a new
 folder with new_folder_name and new_note_title. Never suggest an unknown reference.`;
