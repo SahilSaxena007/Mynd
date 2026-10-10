@@ -1494,3 +1494,29 @@ it is archived: hidden from browsing, still reachable, reversible. Captures alre
 **Why:** both BASB and A Pragmatic Mind converge on it — archiving removes the pressure to decide, and
 it is the same instinct as "nothing is lost". An `archived` state for notes and folders is built when
 tidying or user cleanup is built, not before.
+
+### 2026-10-10 — B16 Slice 7 (readable notes) verified on the real vault
+Captured on the phone, previewed with `organize --dry`, applied the exact run file, viewed locally at
+phone width. Sahil: "it's organized, it's structured, and we can edit it. It looks fine." Notes now
+carry `##` sections, nested detail and summaries; home shows "Last organised … ago". R6 (per-tester
+seeding) is covered by its offline checks and is exercised for real at the first tester's setup.
+
+### 2026-10-10 — GTM14 Fix first, then the tester (loosens GTM10, deliberately)
+Order: (1) Sahil lists the mistakes he has seen; each is mapped to a root cause and marked *fix before
+the tester* or *let the tester confirm*; only the first kind becomes slice 7.1. (2) The to-do view
+(TD1). (3) A slight UI pass, one screen at a time. (4) The watched session (`first-five.md` §0).
+**Why:** a mistake that makes a stranger think the product is broken wastes the one session on
+something already known. The guard against this becoming another scope expansion: each step is
+small, written down, and closes before the next opens; "fix before" means *would look broken to a
+stranger*, not *could be better*.
+
+### 2026-10-10 — TD1 A to-do view, code-only first
+Home shows `To do (N)` under the folders; one tap opens every unticked `- [ ]` line from every note,
+grouped by note, and ticking one there ticks it in its note through the existing save path and its
+conflict check. No model call, no schema change, nothing invented.
+**Why:** it comes from Sahil's own daily use — he wants his to-dos compiled instead of hunting through
+notes. The code-only version costs nothing and cannot invent a task; it also measures how reliably the
+organiser turns tasks into checkboxes.
+**Deferred:** an AI daily digest ("today you need to…") with time estimates — needs scheduled model
+calls and estimates the model would be guessing (the never-invent rule). Built once the list proves it
+gets opened daily. **Rejected:** its own tab (another top-level place to learn).
