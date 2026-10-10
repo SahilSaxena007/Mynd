@@ -1520,3 +1520,64 @@ organiser turns tasks into checkboxes.
 **Deferred:** an AI daily digest ("today you need to…") with time estimates — needs scheduled model
 calls and estimates the model would be guessing (the never-invent rule). Built once the list proves it
 gets opened daily. **Rejected:** its own tab (another top-level place to learn).
+
+# 2026-10-10 — The organiser fragments: diagnosis from Sahil's real use
+
+### 2026-10-10 — B17 What fragmentation looks like in the live vault
+Six Andrew Huberman podcast captures (chapters 1–7, 2026-09-30 → 10-01) landed in **eight Personal
+notes titled by subject** ("Cortisol optimization…", "Breathing techniques…", "yoga mudra and sleep
+techniques"…). Their chapter headings became empty Quick Calls. One pasted throttling explainer became
+ten Quick Calls. "Maybe book tickets to Manchester…" was split from the tasks it qualifies. **8 of 16
+open Quick Calls were leftover fragments**, not real questions. Saved rules include
+"cable mentions and context goes in Mynd · note formatting and organization" (active, wrong).
+Root causes RC8–RC10 are added to `docs/quality-backlog.md`.
+
+### 2026-10-10 — OG1 A Learning folder (PARA's Resources) joins the default set
+"Notes from podcasts, books, courses, videos, articles and technical explainers; one note per source,
+a section per chapter or subtopic." Added to `SEED_FOLDERS` and to Sahil's vault.
+**Why:** a podcast or an explainer fit none of Tasks/Mynd/Work/Personal/Journal/Inbox, so Huberman was
+scattered across Personal and all of throttling became "unsure". **Rejected:** organiser-created
+folders ("Podcast notes / Andrew Huberman") — the larger change, decided after the tester; keeping
+sources in Personal (the dumping-ground problem, A8).
+
+### 2026-10-10 — OG2 A named source or a structured document is one item and one note
+Stage 1 keeps a capture that names its source (podcast, book, course, video, talk) or is one
+structured document as a single item labelled by the source. Stage 2 files one note per source, titled
+by it, with one `##` section per chapter in the user's own words; later chapters join that note.
+**Why:** the splitter was told "a topic is what one note would be about" and so read *cortisol* and
+*breathing* as two topics. The user had already named the organising principle — "Chapter 3 of andrew
+huberman". Sections (RN1) make one note per source workable.
+
+### 2026-10-10 — OG3 Leftover text always joins a neighbour; the model is not asked about fragments
+When the model fails to claim a span lying between two different items, code gives it to the next item
+if it looks like a heading (ends with `:`, `#`, or a bold-only line), otherwise to the previous item.
+`unassigned` survives only for a capture with no model items at all.
+**Why:** the coverage guarantee (nothing lost) was rescuing fragments as standalone Quick Calls, which
+read as broken. Deterministic adjacency keeps every character, exact and in some item, and removes the
+orphans. This is code deciding ownership of text the model dropped — not the model deciding content.
+
+### 2026-10-10 — OG4 "Unsure" means genuinely two plausible homes, not "I had to infer"
+Replaces the route rule "a connection you had to infer is unsure". Deliberation about a task stays with
+the task as nested detail.
+**Why:** the old bar sent obvious placements to the user; Quick Calls should be rare and real.
+
+### 2026-10-10 — OG5 Quick Calls carry a content subject; rules are written from it
+Stage 2 writes a 4–10 word `subject` for each unsure placement; the suggested rule is
+"<subject> go in <destination>", never offered for fragments. Options read `New note: …` or
+`Add to: …`.
+**Why:** the template built rules from the split label ("mynd product ideas goes in Mynd · market
+research and business model"), which is vague, and saved rules outrank folder descriptions (O9) — a
+vague rule actively misroutes. Writing the subject costs nothing: it is the same call.
+
+### 2026-10-10 — OG6 More freedom to *rewrite* is not the fix; the tidy pass is the Karpathy direction
+Sahil asked whether Mynd needs Karpathy-wiki-style freedom. None of B17's failures came from being
+unable to reword — new text may already be rephrased. They came from slicing too finely, no concept of
+a source, no folder for learning, and a low bar for asking. Rewriting existing notes stays forbidden
+(D1/RN1); the Karpathy step is the tidy pass (RC2): the AI *proposes* merges and restructures, the user
+approves. Scheduled after the tester.
+
+### 2026-10-10 — B18 Cleanup of Sahil's vault
+The 8 orphan Quick Calls were dismissed through `resolveQuickCall` (status `dismissed`; captures
+untouched). A single "Andrew Huberman podcast" note, compiled verbatim from the seven captures with a
+section per chapter, replaces the eight scattered notes once Learning exists; the old notes stay until
+archive exists (GTM13). The throttling captures get the same treatment after 7.1 ships.

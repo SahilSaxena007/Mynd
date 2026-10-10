@@ -222,3 +222,21 @@ making that queue *comparative* (RC5) rather than open-ended is the highest-leve
 - **Sectioned notes** (RC1) is the enabling change for most of the rest and should come first in the
   quality pass.
 - **Tidy pass** (RC2) must be proposal-based, never autonomous.
+
+---
+
+## Added 2026-10-10 from real use (B17)
+
+### RC8 — Stage 1 slices by subject and drops headings
+A capture about one source or one pasted document is split into subject-items; heading lines the model
+fails to quote are rescued by coverage code as `unassigned` Quick Calls. *Fix:* OG2 (source/document
+stays whole) and OG3 (leftovers join a neighbour, in code). Slice 7.1 F1–F2.
+
+### RC9 — No concept of a source or series
+Seven chapters of one podcast across six captures became eight notes because routing matches subject
+matter, not the source the user named. *Fix:* OG2 — one note per source, a section per chapter. Slice
+7.1 F3. Needed a home: OG1 (Learning).
+
+### RC10 — The unsure bar is too low; tasks lose their deliberation
+"A connection you had to infer is unsure" queued obvious placements; reasons and doubts about a task
+were split off and queued. *Fix:* OG4. Slice 7.1 F3.
