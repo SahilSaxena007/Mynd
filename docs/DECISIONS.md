@@ -1581,3 +1581,21 @@ The 8 orphan Quick Calls were dismissed through `resolveQuickCall` (status `dism
 untouched). A single "Andrew Huberman podcast" note, compiled verbatim from the seven captures with a
 section per chapter, replaces the eight scattered notes once Learning exists; the old notes stay until
 archive exists (GTM13). The throttling captures get the same treatment after 7.1 ships.
+
+### 2026-10-10 — B19 Slice 7.1 round 1 replayed on real captures: fragmentation fixed, content dropped
+Huberman: one note in Learning, chapter sections, 0 Quick Calls (was 8 notes + orphan cards).
+Throttling: one note, both documents intact (was 10 Quick Calls). But a multi-chapter capture written
+as one placement kept only its first chapter — text silently missing from the note. Cost of both
+replays: $0.067.
+
+### 2026-10-10 — OG7 Code guarantees the written note still contains the item (dropped-content guard)
+If a sure placement's markdown fails to represent any sentence of its item (≥70% of its 3+-letter
+words, or already present in the target note), code writes the item verbatim instead.
+**Why:** "nothing is lost" was guaranteed at the *item* level only — every item reached a note — while
+the note *text* was on the model's honour. Larger items (OG2) made dropping likely, and B19 caught it.
+Falling back to verbatim keeps filing automatic and loses nothing; it is a heuristic threshold, but a
+deterministic one, and its count is reported every run.
+
+### 2026-10-10 — OG2 amended: a source splits at the user's chapter headings, all items share its label
+**Why:** one item per whole source cannot be written into one section per chapter. Splitting at the
+user's own headings (never by subject) keeps the source as the theme and gives each chapter its section.

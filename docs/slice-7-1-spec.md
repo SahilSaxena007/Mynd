@@ -143,3 +143,53 @@ Manual (Sahil), in this order:
    fragment).
 4. Locally on the branch: home shows coloured folder stripes and `To do (N)`; ticking a task on `/todo`
    ticks it in its note; a Quick Call shows `New note:` / `Add to:` and a content-specific rule.
+
+---
+
+## Round 2 (2026-10-10) — found by replaying the repro set on e822b70
+
+Result of round 1: Huberman became **one** note in Learning with chapter sections, zero Quick Calls;
+throttling became **one** note with both documents intact; the Dingbra fragment is gone. But:
+
+- **Content was dropped (must fix).** Capture `33a8d218…` (Chapters 1 *and* 2 *and* "The real
+  question…") was one item with one `section`, and the written markdown contained **only Chapter 1**.
+  Capture `d6968a2a…` (Chapter 2 *and* Chapter 3) lost its Chapter 3 lines. A placement has one section,
+  so a multi-chapter item cannot be expressed, and nothing in code checks that the written text still
+  contains the item.
+- **A task became journal prose.** In `dec29237…`, "I need to call Ayush" plus the Manchester
+  deliberation went to a new Journal note as a paragraph; only "message brother's friend" became a
+  checkbox.
+- (Not a bug: replaying `1946e6fd…` wrote only its last sentence because the existing Dingbra note
+  already holds the rest — correct de-duplication against the target note.)
+
+### F8 — A source capture splits at the user's own chapter headings (split prompt; amends OG2)
+Replace F2's "one item whatever it covers" for sources with: a capture about a named source splits
+**only at the user's own chapter / part / episode headings**, one item per heading, **every item
+carrying the same source label** (`andrew huberman podcast`). Never split it by subject. Text before
+the first heading (a title line like "Andrew Huberman Podcast Notes:") joins the first item; trailing
+remarks ("The real question: …") join the last. A structured document with no chapter headings stays
+one item, as in F2. Route then gives each item its own `section`.
+
+### F9 — Dropped-content guard (code; OG7)
+After Stage 2 and before Stage 3, for every *sure* placement compare the item to the markdown:
+- Split the item text into lines/sentences (reuse `split-coverage`'s sentence segmentation). For each,
+  take its words of 3+ letters, lowercased, markdown and punctuation stripped.
+- A sentence is **represented** if ≥ 70% of those words appear in the placement's markdown, **or** the
+  sentence already appears (same normalisation) in the target note's current body (legitimate
+  de-duplication, as with Dingbra).
+- If any sentence is unrepresented, code **replaces the markdown with the item's own text, verbatim**
+  (its quotes joined as captured), keeping the chosen note and section. Never queue; never drop.
+- Count it in the run record as `contentFallbacks` and print it in `printPlan`.
+- Offline cases in `organize:check`: a faithful rephrase passes; a markdown missing one sentence falls
+  back to verbatim; a sentence already in the target body passes.
+
+### F10 — "I need to…" is a task, deliberation and all (route prompt)
+Add: an item whose own words say the user needs to do something ("I need to call Ayush") is a task:
+it goes to the Tasks folder as a checkbox, and any deliberation ("not sure if I should go…") is nested
+sub-bullets beneath it. Journal is for reflections with no action in them.
+
+### Round 2 verification
+Re-run the two previews from the bottom of this spec (Huberman with `--no-notes`; the other four).
+Expect: every Huberman chapter's bullets present, Chapter 2 and Chapter 3 each one section holding
+both captures' bullets, "The real question…" present; `contentFallbacks` 0 or small and listed; the
+Ayush capture as Tasks checkboxes with the Manchester deliberation nested.
