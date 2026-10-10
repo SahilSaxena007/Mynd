@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS quick_calls (
   resolved_at timestamptz
 );
 CREATE INDEX IF NOT EXISTS quick_calls_status_idx ON quick_calls (status);
+ALTER TABLE quick_calls ADD COLUMN IF NOT EXISTS subject text NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS organize_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

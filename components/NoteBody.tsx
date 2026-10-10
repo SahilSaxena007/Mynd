@@ -2,21 +2,10 @@
 
 import { createContext, useContext } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { noteRemarkPlugins, remarkTaskOnly } from "@/lib/note-tasks";
+export { toggleTaskLine } from "@/lib/note-tasks";
 
 const SourceLine = createContext<number | undefined>(undefined);
-
-// Only inspect the selected source line, never search for an item's text.
-export function toggleTaskLine(body: string, line: number): string {
-  // Capturing separators retains CRLF/LF bytes, even in a mixed-newline note.
-  const lines = body.split(/(\r\n|\n|\r)/);
-  const index = (line - 1) * 2;
-  const source = lines[index];
-  if (source === undefined) return body;
-  lines[index] = source.replace(/^(\s*(?:>\s*)*(?:[-+*]|\d+[.)])\s+\[)([ xX])(\])/, (_match, prefix, marker, suffix) =>
-    `${prefix}${marker === " " ? "x" : " "}${suffix}`);
-  return lines.join("");
-}
 
 function TaskCheckbox({ checked, disabled, onToggle }: {
   checked: boolean; disabled: boolean; onToggle?: (line: number) => void;
@@ -28,8 +17,8 @@ function TaskCheckbox({ checked, disabled, onToggle }: {
     style={{ width: 24, height: 24, accentColor: "#245bc4", margin: "4px 8px 4px 0", verticalAlign: "middle" }} />;
 }
 
-export default function NoteBody({ body, disabled = false, onToggle }: {
-  body: string; disabled?: boolean; onToggle?: (line: number) => void;
+export default function NoteBody({ body, disabled = false, onToggle, taskLine }: {
+  body: string; disabled?: boolean; onToggle?: (line: number) => void; taskLine?: number;
 }) {
   return <div className="note-body" style={{ overflowWrap: "anywhere", overflowX: "auto" }}>
     <style jsx>{`
@@ -42,7 +31,7 @@ export default function NoteBody({ body, disabled = false, onToggle }: {
       .note-body :global(pre) { white-space: pre-wrap; }
       .note-body :global(img) { max-width: 100%; height: auto; }
     `}</style>
-    <Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
+    <Markdown remarkPlugins={taskLine === undefined ? noteRemarkPlugins : [...noteRemarkPlugins, [remarkTaskOnly, { line: taskLine }]]} skipHtml components={{
       li: ({ node, children, ...props }) => <SourceLine.Provider value={node?.position?.start.line}>
         <li {...props}>{children}</li>
       </SourceLine.Provider>,

@@ -73,7 +73,7 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
   // Keep the diagnostic about MODEL claims, before code absorbs any text.
   const modelClaimed = owners.map((claimed) => claimed.size > 0);
   const segments = sentences(captureBody);
-  const absorbedSpans = { sentenceIntegrity: 0, singleHome: 0 };
+  const absorbedSpans = { sentenceIntegrity: 0, singleHome: 0, headingToNext: 0, toPrevious: 0 };
   for (const segment of segments) {
     for (let start = segment.start; start < segment.end;) {
       if (owners[start].size) { start++; continue; }
@@ -98,6 +98,17 @@ export function completeSplit(captureBody: string, modelItems: ModelSplitItem[])
       const owner = neighbours.values().next().value!;
       for (let at = segments[first].start; at < segments[after - 1].end; at++) owners[at].add(owner);
       absorbedSpans.singleHome++;
+    } else if (neighbours.size > 1) {
+      const start = segments[first].start;
+      const end = segments[after - 1].end;
+      const text = captureBody.slice(start, end).trim();
+      const heading = text.endsWith(":") || /^#{1,6}\s+/u.test(text) || /^\*\*[^\r\n]+\*\*$/u.test(text);
+      const previous = owners[start - 1];
+      const next = owners[end];
+      const target = heading ? (next?.size ? next : previous) : (previous?.size ? previous : next);
+      const owner = target!.values().next().value!;
+      for (let at = start; at < end; at++) owners[at].add(owner);
+      absorbedSpans[heading ? "headingToNext" : "toPrevious"]++;
     }
     first = after;
   }

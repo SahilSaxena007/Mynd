@@ -43,14 +43,14 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
       const numbers = unverifiedNumbers(`${placement.section}\n${placement.markdown}`, item.text);
       if (numbers.length) {
         result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
-          reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placement) });
+          subject: "", reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placement) });
       } else {
         result.filed.push({ item, note: placement.note, section: placement.section, markdown: placement.markdown });
       }
     } else {
       result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
         reason: !placement ? "not_placed" : placement.confidence === "unsure" ? "unsure" : "invalid_target",
-        options: optionsFor(placement),
+        subject: placement?.confidence === "unsure" ? placement.subject : "", options: optionsFor(placement),
       });
     }
   }
@@ -70,7 +70,7 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
         queued.unverifiedNumbers = [...new Set([...(queued.unverifiedNumbers ?? []), ...numbers])];
       } else {
         result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
-          reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placements.get(item.ref)) });
+          subject: "", reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placements.get(item.ref)) });
       }
     }
   }

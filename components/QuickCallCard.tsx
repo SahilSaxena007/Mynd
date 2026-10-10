@@ -1,5 +1,6 @@
 "use client";
 
+import { suggestedRule } from "@/lib/quick-call-rule";
 import { useRef, useState } from "react";
 import { vaultFetch } from "./vault-data";
 import type { VaultJSON } from "./vault-data";
@@ -39,7 +40,7 @@ export default function QuickCallCard({ call, folders, notes, filed, onFiled, on
       if (!response.ok) throw new Error();
       if (resolution.action === "dismiss") onDone();
       else {
-        setInstruction(`${call.topic} goes in ${destination}.`);
+        setInstruction(suggestedRule(call, destination));
         onFiled(destination);
       }
     } catch { setError("Could not resolve this item. Your choice is still here; try again."); }

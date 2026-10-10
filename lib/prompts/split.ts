@@ -4,6 +4,14 @@ A topic is what one note would be about. Split only where parts belong in differ
 notes: a remark about the user's day, a product idea, and an errand are three topics.
 Most captures hold one to three topics. One item per sentence is almost always wrong.
 A single-topic capture returns exactly one item; do not force a split.
+When a capture names its source (a podcast, book, course, video, talk, article,
+or a person being learned from, often with chapter, episode or part), keep it as
+ONE item whatever subjects it covers. The source is the topic: for example,
+"andrew huberman podcast". One structured document (a title line followed by
+headings, bullets or code) also stays ONE item, labelled by its source or title,
+for example "throttling". These source/document rules take precedence over splitting by subject.
+Deliberation stays with its task: doubts, reasons and "should I…" about a task
+belong in that task's item, never a separate item.
 Keep a list with its introducing sentence and closing remarks. Keep examples with
 the point they illustrate. Keep corrections and clarifications with what they correct:
 preserve BOTH the original statement and the correction, in order, never just the final version.

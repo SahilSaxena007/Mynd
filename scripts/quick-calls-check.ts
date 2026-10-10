@@ -169,7 +169,8 @@ async function main() {
       ];
       const listed = await (await getCalls(request("GET"))).json();
       const choices = listed.quickCalls.find((entry: { id: string }) => entry.id === offered.id).choices;
-      assert.equal(choices[0].label, "Personal · things to buy");
+      assert.equal(choices[0].label, "Add to: things to buy (in Personal)");
+      assert.equal(choices[1].label, "New note: Beauty (in Personal)");
       assert.deepEqual(choices[0].resolution, { action: "file", noteId: checkId(5) });
       assert.deepEqual(choices[1].resolution, { action: "file", folderId: checkId(1), newNoteTitle: "Beauty" });
       assert.equal(choices[2].resolution, null);

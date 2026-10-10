@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { clearToken, getToken } from "./token";
 import type { Folder, Note, OrganizeRun } from "@/lib/db/types";
 
 export type NoteJSON = Omit<Note, "createdAt" | "updatedAt"> & { createdAt: string; updatedAt: string };
 export type VaultJSON = {
   folders: (Omit<Folder, "createdAt"> & { createdAt: string })[];
-  notes: Omit<NoteJSON, "body">[];
+  notes: NoteJSON[];
   openQuickCalls: number;
   lastRun: (Omit<OrganizeRun, "startedAt" | "finishedAt"> & { startedAt: string; finishedAt: string }) | null;
 };
@@ -22,6 +22,12 @@ export async function vaultFetch(url: string, options: RequestInit = {}) {
 export function useVault() {
   const [vault, setVault] = useState<VaultJSON | null>(null);
   const [error, setError] = useState("");
+  const reload = useCallback(async () => {
+    const response = await vaultFetch("/api/vault", { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error("Could not load the vault.");
+    setVault(await response.json());
+    setError("");
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
@@ -37,5 +43,5 @@ export function useVault() {
     void load();
     return () => controller.abort();
   }, []);
-  return { vault, error };
+  return { vault, error, reload, setVault };
 }

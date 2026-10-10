@@ -31,7 +31,7 @@ function assertSavedNumbers(refs: RunRefs, plan: ResolvedPlan) {
   // the reviewed plan or letting --apply bypass the current guarantee.
   const checked = resolveCoverage(refs, { new_notes: plan.newNotes,
     placements: plan.filed.map((entry) => ({ item: entry.item.ref, note: entry.note,
-      section: entry.section, markdown: entry.markdown, confidence: "sure", options: [] })) });
+      section: entry.section, markdown: entry.markdown, confidence: "sure", subject: "", options: [] })) });
   if (checked.filed.length !== plan.filed.length) {
     throw new Error("Saved plan contains unverified numbers; review a new dry run before applying.");
   }
@@ -62,7 +62,7 @@ const validateSaved = new Ajv({ strict: true }).compile<{ version: number; dry: 
     plan: object({
       newNotes: array(object(strings(["ref", "folder", "title", "summary"]))),
       filed: array(object({ item: itemSchema, ...strings(["note", "section", "markdown"]) })),
-      queued: array(object({ ...strings(["item", "captureId", "topic", "itemText"]),
+      queued: array(object({ ...strings(["item", "captureId", "topic", "itemText", "subject"]),
         reason: { enum: ["unsure", "invalid_target", "not_placed", "added_detail"] },
         options: { ...array(object(strings(["label", "folder", "note", "new_note_title", "new_folder_name"]))), maxItems: 3 },
       })),

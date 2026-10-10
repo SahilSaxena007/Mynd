@@ -1,7 +1,9 @@
 import { withAuth } from "@/lib/auth";
-import { countOpenQuickCalls, getLastOrganizeRun, getVault } from "@/lib/db/queries";
+import { countOpenQuickCalls, getLastOrganizeRun, listFolders, getEditableNotes } from "@/lib/db/queries";
 
 export const GET = withAuth(async () => {
-  const [vault, openQuickCalls, lastRun] = await Promise.all([getVault(), countOpenQuickCalls(), getLastOrganizeRun()]);
-  return Response.json({ ...vault, openQuickCalls, lastRun }, { headers: { "Cache-Control": "no-store" } });
+  const [folders, notes, openQuickCalls, lastRun] = await Promise.all([
+    listFolders(), getEditableNotes(), countOpenQuickCalls(), getLastOrganizeRun(),
+  ]);
+  return Response.json({ folders, notes, openQuickCalls, lastRun }, { headers: { "Cache-Control": "no-store" } });
 });

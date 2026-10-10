@@ -21,6 +21,10 @@ import { printPlan } from "../lib/organizer/print";
 import { formatPreviewError } from "../lib/model/errors";
 import { checkOrganizeRuns } from "./organize-run-check";
 import { checkOrganizeRetry } from "./organize-retry-check";
+import { suggestedRule } from "../lib/quick-call-rule";
+import { withDatabase } from "../lib/db/client";
+import { quickCallsCheckDatabase } from "../lib/db/quick-calls-check-support";
+import { insertQuickCall } from "../lib/db/queries";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -31,7 +35,7 @@ const note: Note = { id: "note", folderId: folder.id, title: "things to buy", su
   body: "- [ ] bread", createdAt: date, updatedAt: date };
 const item = { topic: "things to buy", quotes: ["buy milk"], unassigned: false };
 const refs = buildRefs([capture], [folder], [note], [], [[item]], "Europe/London");
-const sure: Placement = { item: "I1", confidence: "sure", section: "", note: "N1", markdown: "- [ ] milk", options: [] };
+const sure: Placement = { item: "I1", confidence: "sure", subject: "", section: "", note: "N1", markdown: "- [ ] milk", options: [] };
 const empty: RoutePlan = { new_notes: [], placements: [] };
 let passed = 0;
 function pass(label: string) { console.log(`PASS ${++passed}: ${label}`); }
@@ -51,6 +55,23 @@ async function main() {
   globalThis.fetch = async () => { requests++; throw new Error("HTTP is forbidden in organize:check"); };
   try {
     checkReadableNotes(pass);
+    const subject = "notes from the Andrew Huberman podcast";
+    const queuedPlan = resolveCoverage(refs, { ...empty,
+      placements: [{ ...sure, confidence: "unsure", subject, note: "", markdown: "" }] });
+    const queued = JSON.parse(JSON.stringify(savedPlan(refs, queuedPlan))).plan.queued[0];
+    assert.equal(queued.subject, subject);
+    const offlineDb = quickCallsCheckDatabase();
+    await withDatabase(offlineDb.pool, async () => {
+      const inserted = await insertQuickCall(queued);
+      assert.equal(inserted.subject, subject);
+      assert.equal((await listOpenQuickCalls()).find((call) => call.id === inserted.id)?.subject, subject);
+    });
+    assert.equal(suggestedRule(queued, "Learning"), `${subject} go in Learning.`);
+    for (const excluded of [{ ...queued, subject: "" }, { ...queued, subject: "  " },
+      { ...queued, topic: "unassigned" }, { ...queued, reason: "not_placed" as const }]) {
+      assert.equal(suggestedRule(excluded, "Learning"), "");
+    }
+    pass("subject survives resolution, saved plan and Quick Call persistence; fragments never suggest rules");
     const emptySummary = resolveCoverage(refs, {
       new_notes: [{ ref: "X1", folder: "personal", title: "Shopping", summary: "  " }],
       placements: [{ ...sure, note: "X1" }],
