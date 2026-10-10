@@ -47,7 +47,8 @@ export function resolveCoverage(refs: RunRefs, plan: RoutePlan): ResolvedPlan {
         result.queued.push({ item: item.ref, captureId: item.captureId, topic: item.topic, itemText: item.text,
           subject: "", reason: "added_detail", unverifiedNumbers: numbers, options: optionsFor(placement) });
       } else {
-        const fallback = hasDroppedContent(item.text, placement.markdown, existing?.body);
+        const written = `${existing?.title ?? declared?.title ?? ""}\n${placement.section}\n${placement.markdown}`;
+        const fallback = hasDroppedContent(item.text, written, existing?.body);
         if (fallback) result.contentFallbacks++;
         result.filed.push({ item, note: placement.note, section: placement.section,
           markdown: fallback ? item.text : placement.markdown });

@@ -4,14 +4,23 @@ function words(text: string): string[] {
   return text.toLowerCase().match(/\p{L}{3,}/gu) ?? [];
 }
 
-export function hasDroppedContent(itemText: string, markdown: string, targetBody = ""): boolean {
-  const written = new Set(words(markdown));
+export function hasDroppedContent(itemText: string, writtenText: string, targetBody = ""): boolean {
+  const written = new Set(words(writtenText));
   // Spaces enforce whole-word boundaries when checking an already-present sentence.
   const existing = ` ${words(targetBody).join(" ")} `;
-  return sentences(itemText).some(({ start, end }) => {
+  let total = 0;
+  let matched = 0;
+  let consecutive = 0;
+  for (const { start, end } of sentences(itemText)) {
     const sentence = words(itemText.slice(start, end));
-    if (!sentence.length) return false;
-    if (sentence.filter((word) => written.has(word)).length / sentence.length >= 0.7) return false;
-    return !existing.includes(` ${sentence.join(" ")} `);
-  });
+    // Empty/short-word-only segments carry no evidence and do not interrupt a block.
+    if (!sentence.length) continue;
+    const hits = sentence.filter((word) => written.has(word)).length;
+    total += sentence.length;
+    matched += hits;
+    const represented = hits / sentence.length >= 0.7 || existing.includes(` ${sentence.join(" ")} `);
+    consecutive = represented ? 0 : consecutive + 1;
+    if (consecutive >= 3) return true;
+  }
+  return total > 0 && matched / total < 0.6;
 }

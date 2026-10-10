@@ -19,7 +19,27 @@ export function checkContentCoverage(base: RunRefs, pass: (label: string) => voi
   assert.equal(faithful.filed[0].markdown, placement.markdown);
   pass("faithful rephrase retains at least 70% of each sentence's words");
 
-  const missing = "- Morning sunlight helps reset the body clock.";
+  function checkPlacement(source: string, title: string, section: string, markdown: string, fresh = false) {
+    const context = buildRefs([{ ...base.captures[0], body: source }], [...base.folders.values()],
+      [{ ...existing, title }], [], [[{ topic: "podcast", quotes: [source], unassigned: false }]], "Europe/London");
+    const plan = resolveCoverage(context, {
+      new_notes: fresh ? [{ ref: "X1", folder: [...base.folders.keys()][0], title, summary: "Podcast notes" }] : [],
+      placements: [{ ...placement, note: fresh ? "X1" : "N1", section, markdown }],
+    });
+    assert.equal(plan.contentFallbacks, 0);
+    assert.equal(plan.filed[0].markdown, markdown);
+    assert.equal(savedPlan(context, plan).plan.contentFallbacks, 0);
+  }
+  checkPlacement("Chapter: Morning cortisol and energy\nSleep well.", "Podcast", "Chapter: Morning cortisol and energy", "Sleep well.");
+  pass("heading moved to section counts as written content");
+  for (const fresh of [false, true]) {
+    checkPlacement("Andrew Huberman Podcast Notes:\nSleep well.", "Andrew Huberman Podcast Notes", "", "Sleep well.", fresh);
+  }
+  pass("title line moved to existing or new note title counts as written content, including saved plans");
+  checkPlacement("Sure, okay. Morning sunlight helps reset the body clock.", "Podcast", "", "Morning sunlight helps reset the body clock.");
+  pass("one dropped filler sentence passes when overall coverage remains sufficient");
+
+  const missing = "- Avoid drinking coffee before breakfast.";
   const fallback = resolve(missing);
   assert.equal(fallback.contentFallbacks, 1);
   assert.equal(fallback.filed[0].markdown, text);
@@ -36,21 +56,29 @@ export function checkContentCoverage(base: RunRefs, pass: (label: string) => voi
     filed: [{ ...fallback.filed[0], markdown: missing }] }), /dropped content/);
   pass("missing sentence falls back to verbatim with note/section retained; count saved/printed and saved-plan bypass refused");
 
-  const dedup = { ...refs, notes: new Map([["N1", { ...existing,
-    body: "## Earlier\n- AVOID **drinking** coffee before breakfast!" }]]) };
-  const represented = resolve(missing, dedup);
-  assert.equal(represented.contentFallbacks, 0);
-  assert.equal(represented.filed[0].markdown, missing);
-  assert.equal(resolve(missing, { ...refs, notes: new Map([["N1", {
-    ...existing, body: "Avoid coffee before breakfast.",
-  }]]) }).contentFallbacks, 1, "existing body requires the full normalised sentence");
-  pass("already-present sentence permits de-duplication using normalised whole words");
+  const block = "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa. red. blue. green.";
+  const kept = "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa.";
+  assert.equal(hasDroppedContent(block, kept), true);
+  assert.equal(hasDroppedContent(block, kept, "**BLUE**!"), false);
+  assert.equal(hasDroppedContent(block, kept, "blueberry"), true);
+  assert.equal(hasDroppedContent("red. " + kept + " blue. " + kept + " green.", kept), false);
+  const boundary = "quartz zebra velvet amber bronze copper denim ebony fuchsia golden. red. blue. " + kept;
+  assert.equal(hasDroppedContent(boundary, "quartz zebra velvet amber bronze copper denim " + kept), false);
+  assert.equal(hasDroppedContent(boundary, "quartz zebra velvet amber bronze copper " + kept), true);
+  pass("already-present normalised sentence interrupts an otherwise dropped block");
+  const blockRefs = buildRefs([{ ...base.captures[0], body: block }], [...base.folders.values()], [existing], [],
+    [[{ topic: "podcast", quotes: [block], unassigned: false }]], "Europe/London");
+  const blockFallback = resolve(kept, blockRefs);
+  assert.equal(blockFallback.contentFallbacks, 1);
+  assert.equal(blockFallback.filed[0].markdown, block);
+  pass("three consecutive dropped sentences fall back despite overall coverage above 60%; scattered omissions pass");
 
   const ten = "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
   assert.equal(hasDroppedContent(ten, "alpha bravo charlie delta echo foxtrot golf"), false);
-  assert.equal(hasDroppedContent(ten, "alpha bravo charlie delta echo foxtrot"), true);
+  assert.equal(hasDroppedContent(ten, "alpha bravo charlie delta echo foxtrot"), false);
+  assert.equal(hasDroppedContent(ten, "alpha bravo charlie delta echo"), true);
   assert.equal(hasDroppedContent("Buy milk.", "buy milkshake", "Buy milkshake."), true);
   assert.equal(hasDroppedContent("I am 12!", ""), false);
   assert.equal(resolve("").filed[0].markdown, text);
-  pass("70% boundary, whole-word matching, short-word sentences and empty model text handled deterministically");
+  pass("60% boundary, coverage 0.5, whole-word matching, short-word sentences and empty model text");
 }
