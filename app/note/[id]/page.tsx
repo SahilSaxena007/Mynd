@@ -60,18 +60,20 @@ function NoteView({ id }: { id: string }) {
   }
 
   const folder = vault?.folders.find((folder) => folder.id === note?.folderId);
-  return <main>
+  return <main style={{ maxWidth: 680, margin: "0 auto", fontFamily: "system-ui, sans-serif", fontSize: 17, lineHeight: 1.6, background: "white", color: "#222", overflowWrap: "anywhere" }}>
+    <style jsx>{`main :global(a) { color: #245bc4; } h1 { font-size: 2rem; line-height: 1.25; }`}</style>
     <Link href={folder ? `/folder/${encodeURIComponent(folder.slug)}` : "/"}
       style={{ display: "inline-block", padding: "12px 0" }}>← {folder?.name ?? "Vault"}</Link>
     {vaultError && <p role="alert">{vaultError}</p>}
     {error && <p role="alert">{error}</p>}
     {!note ? !error && <p role="status">Loading…</p> : <>
       <h1>{note.title}</h1>
+      {note.summary && <p style={{ color: "#666" }}>{note.summary}</p>}
       {editing ? <>
         <label htmlFor="note-body">{conflict ? "Your unsaved Markdown" : "Markdown"}</label>
         <textarea id="note-body" value={draft} readOnly={saving || !!conflict}
           onChange={(event) => setDraft(event.target.value)}
-          style={{ display: "block", boxSizing: "border-box", width: "100%", minHeight: 320, fontSize: 16, padding: 12 }} />
+          style={{ display: "block", boxSizing: "border-box", width: "100%", minHeight: 320, font: "inherit", padding: 12 }} />
         <button onClick={() => void save(draft)} disabled={saving || !!conflict || !draft.trim() || draft === note.body || draft.length > 200_000}
           style={{ minHeight: 48, marginRight: 12 }}>Save</button>
         <button onClick={() => { setEditing(false); setDraft(""); }} disabled={saving} style={{ minHeight: 48 }}>Cancel</button>

@@ -1,3 +1,4 @@
+import { insertNoteBlock } from "../organizer/note-body";
 import { assertOutsideTransaction, query, withTransaction } from "./transaction";
 import type {
   Ask, AskInput, Capture, CaptureInput, Folder, FolderInput, Note, NoteInput,
@@ -236,6 +237,17 @@ export async function createNote(input: NoteInput): Promise<Note> {
   return (await query<Note>(`INSERT INTO notes (folder_id, title, summary, body)
     VALUES ($1, $2, $3, $4) RETURNING ${noteColumns}`,
   [input.folderId, input.title, input.summary ?? null, input.body])).rows[0];
+}
+
+// Stage 3 holds the target row lock in the run transaction before calling this.
+export async function insertIntoNote(id: string, section: string, block: string): Promise<Note> {
+  const current = await getNote(id);
+  if (!current) throw new Error("Note not found.");
+  const { newBody } = insertNoteBlock(current.body, section, block);
+  const result = await query<Note>(`UPDATE notes SET body = $2, updated_at = clock_timestamp()
+    WHERE id = $1 RETURNING ${noteColumns}`, [id, newBody]);
+  if (!result.rows[0]) throw new Error("Note not found.");
+  return result.rows[0];
 }
 
 export async function appendToNote(id: string, block: string): Promise<Note> {

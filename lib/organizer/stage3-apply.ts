@@ -1,7 +1,8 @@
-import { appendToNote, createNote, insertQuickCall, linkNoteToCapture, markCaptureProcessed } from "../db/queries";
+import { insertIntoNote, createNote, insertQuickCall, linkNoteToCapture, markCaptureProcessed } from "../db/queries";
 import { withTransaction } from "../db/transaction";
 import { lockOrganizerCaptures, lockOrganizerTargets } from "../db/organizer-targets";
 import { isDeepStrictEqual } from "node:util";
+import { newNoteBody } from "./note-body";
 import type { RunRefs } from "./refs";
 import type { ResolvedPlan } from "./coverage";
 
@@ -18,12 +19,14 @@ export function assertResolvedPlan(refs: RunRefs, plan: ResolvedPlan): void {
       || item.quotes.some((quote) => !capture.body.includes(quote))) fail();
   }
   for (const note of plan.newNotes) {
+    if (!note.summary.trim()) throw new Error("New note summary must not be empty.");
     if (!refs.newNoteRefs.has(note.ref) || refs.notes.has(note.ref) || !refs.folders.has(note.folder)
       || !plan.filed.some((entry) => entry.note === note.ref)) fail();
   }
   const accounted = new Set<string>();
   for (const entry of plan.filed) {
     if (!isDeepStrictEqual(items.get(entry.item.ref), entry.item) || accounted.has(entry.item.ref)
+      || typeof entry.section !== "string" || /[\r\n]/.test(entry.section)
       || !entry.markdown.trim() || (!refs.notes.has(entry.note) && !newNotes.has(entry.note))) fail();
     accounted.add(entry.item.ref);
   }
@@ -78,11 +81,11 @@ export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = f
       const folder = refs.folders.get(note.folder);
       if (!folder) throw new Error("Resolved folder is missing.");
       const created = await createNote({ folderId: folder.id, title: note.title, summary: note.summary,
-        body: plan.filed.filter((entry) => entry.note === note.ref).map((entry) => entry.markdown).join("\n\n") });
+        body: newNoteBody(plan.filed.filter((entry) => entry.note === note.ref)) });
       noteIds.set(note.ref, created.id);
     }
     for (const entry of plan.filed) {
-      if (refs.notes.has(entry.note)) await appendToNote(refs.notes.get(entry.note)!.id, entry.markdown);
+      if (refs.notes.has(entry.note)) await insertIntoNote(refs.notes.get(entry.note)!.id, entry.section, entry.markdown);
     }
     for (const entry of plan.filed) {
       const noteId = noteIds.get(entry.note);

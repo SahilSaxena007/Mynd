@@ -34,9 +34,9 @@ export async function checkOrganizeRetry(pass: (label: string) => void) {
     assert.ok(outcome, "Unexpected extra model attempt");
     if (outcome === "provider") return new Response(JSON.stringify({ type: "error",
       error: { type: "rate_limit_error", message: "PRIVATE_ERROR_CANARY" } }), { status: 429 });
-    const plan = { new_notes: [{ ref: "X1", folder: "personal", title: "test note", summary: "" }],
+    const plan = { new_notes: [{ ref: "X1", folder: "personal", title: "test note", summary: "test" }],
       placements: input.items.map((item: { ref: string; text: string }) => ({ item: item.ref,
-        note: "X1", markdown: item.text, confidence: "sure", options: [] })) };
+        note: "X1", markdown: item.text, confidence: "sure", section: "", options: [] })) };
     return new Response(JSON.stringify({ id: "fake", type: "message", role: "assistant", model: request.model,
       content: [{ type: "text", text: outcome === "schema" ? "{}" : JSON.stringify(plan) }],
       stop_reason: outcome === "max_tokens" || outcome === "refusal" ? outcome : "end_turn",

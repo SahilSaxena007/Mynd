@@ -15,6 +15,7 @@
     "quick-calls:check": "tsx scripts/quick-calls-check.ts",
     "db:check": "tsx scripts/check-db.ts",
     "db:migrate": "tsx scripts/db-setup.ts migrate",
+    "seed:check": "tsx scripts/seed-check.ts",
     "db:seed": "tsx scripts/db-setup.ts seed",
     "folders:describe": "tsx scripts/folders-describe.ts",
     "smoke": "tsx scripts/smoke.ts",

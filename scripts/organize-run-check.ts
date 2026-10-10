@@ -23,7 +23,7 @@ const stages: Stages = {
     data: completeSplit(capture.body, [{ topic: "test", quotes: [capture.body] }]) }),
   routeItems: async (refs) => ({ model, usage, data: {
     new_notes: [{ ref: "X1", folder: "personal", title: "test note", summary: "test" }],
-    placements: [{ item: refs.items[0].ref, note: "X1", markdown: refs.items[0].text, confidence: "sure", options: [] }],
+    placements: [{ item: refs.items[0].ref, note: "X1", markdown: refs.items[0].text, confidence: "sure", section: "", options: [] }],
   } }),
 };
 async function fixture() {
@@ -48,9 +48,9 @@ export async function checkOrganizeRuns(pass: (label: string) => void) {
       const captures = await fixture();
       await createNote({ folderId: (await listFolders())[0].id, title: "existing", body: "before" });
       await run({ routeItems: async (refs) => ({ model, usage, data: {
-        new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "" }],
+        new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "shopping" }],
         placements: refs.items.map((item, index) => ({ item: item.ref, note: index ? "N1" : "X1",
-          markdown: item.text, confidence: "sure", options: [] })),
+          markdown: item.text, confidence: "sure", section: "", options: [] })),
       } satisfies RoutePlan }) });
       const record = (await getLastOrganizeRun())!;
       assert.equal(await organizeRunCount(), 1);

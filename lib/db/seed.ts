@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { getFolderBySlug, withTransaction } from "./queries";
 import { query } from "./transaction";
 import type { Folder, FolderInput } from "./types";
@@ -13,10 +14,29 @@ export const SEED_FOLDERS: FolderInput[] = [
   { name: "Inbox", slug: "inbox", color: "#c9a86a", description: INBOX_DESC },
 ];
 
+export async function loadSeedFolders(file = process.env.SEED_FOLDERS_FILE): Promise<FolderInput[]> {
+  if (file === undefined) return SEED_FOLDERS;
+  const inputs: unknown = JSON.parse(await readFile(file, "utf8"));
+  if (!Array.isArray(inputs)) throw new Error("Seed folders must be an array.");
+  const slugs = new Set<string>();
+  const folders = inputs.map((input): FolderInput => {
+    if (!input || typeof input !== "object"
+      || ["name", "slug", "color", "description"].some((key) =>
+        typeof input[key] !== "string" || !input[key].trim())
+      || !/^[a-z0-9-]+$/.test(input.slug) || !/^#[0-9a-f]{6}$/i.test(input.color)
+      || slugs.has(input.slug)) throw new Error("Invalid seed folder fields or duplicate slug.");
+    slugs.add(input.slug);
+    return { name: input.name, slug: input.slug, color: input.color, description: input.description };
+  });
+  return [...folders, ...SEED_FOLDERS.filter((folder) =>
+    (folder.slug === "inbox" || folder.slug === "journal") && !slugs.has(folder.slug))];
+}
+
 export async function seed(): Promise<Folder[]> {
+  const inputs = await loadSeedFolders(); // Validate the entire file before any database work.
   return withTransaction(async () => {
     const folders: Folder[] = [];
-    for (const input of SEED_FOLDERS) {
+    for (const input of inputs) {
       // Re-running the seed preserves any edits to existing folders.
       await query(`INSERT INTO folders (name, slug, description, color)
         VALUES ($1, $2, $3, $4) ON CONFLICT (slug) DO NOTHING`,

@@ -6,12 +6,13 @@ import { join } from "node:path";
 import { loadEnvConfig } from "@next/env";
 import { closeDb } from "../lib/db/client";
 import { createFolder, createNote, getNote, getNotesWithBodies, getPendingCaptures, insertCapture, listOpenQuickCalls, markCaptureProcessed, skipCaptures } from "../lib/db/queries";
-import { injectOrganizeFailure, organizeRowCounts, withOrganizeCheckSchema } from "../lib/db/organize-check-support";
+import { injectOrganizeFailure, organizeRowCounts, withOrganizeCheckSchema as withDatabaseSchema } from "../lib/db/organize-check-support";
 import type { Capture, Folder, Note, QuickCallOption } from "../lib/db/types";
 import { resolveCoverage } from "../lib/organizer/coverage";
 import { buildRefs, localDate } from "../lib/organizer/refs";
 import type { Placement, RoutePlan } from "../lib/organizer/route-types";
-import { applyPlan } from "../lib/organizer/stage3-apply";
+import { checkReadableNotes } from "./readable-notes-check";
+import { applyPlan, assertResolvedPlan } from "../lib/organizer/stage3-apply";
 import { applySavedRun, savedPlan } from "../lib/organizer";
 import { samplingParameters } from "../lib/model/capabilities";
 import { buildAnthropicRequest } from "../lib/model";
@@ -30,10 +31,16 @@ const note: Note = { id: "note", folderId: folder.id, title: "things to buy", su
   body: "- [ ] bread", createdAt: date, updatedAt: date };
 const item = { topic: "things to buy", quotes: ["buy milk"], unassigned: false };
 const refs = buildRefs([capture], [folder], [note], [], [[item]], "Europe/London");
-const sure: Placement = { item: "I1", confidence: "sure", note: "N1", markdown: "- [ ] milk", options: [] };
+const sure: Placement = { item: "I1", confidence: "sure", section: "", note: "N1", markdown: "- [ ] milk", options: [] };
 const empty: RoutePlan = { new_notes: [], placements: [] };
 let passed = 0;
 function pass(label: string) { console.log(`PASS ${++passed}: ${label}`); }
+
+// The default suite is offline. Retain existing PostgreSQL checks via --database.
+const database = process.argv.includes("--database");
+async function withOrganizeCheckSchema(fn: () => Promise<void>) {
+  if (database) await withDatabaseSchema(fn);
+}
 
 async function main() {
   loadEnvConfig(process.cwd());
@@ -43,6 +50,19 @@ async function main() {
   let requests = 0;
   globalThis.fetch = async () => { requests++; throw new Error("HTTP is forbidden in organize:check"); };
   try {
+    checkReadableNotes(pass);
+    const emptySummary = resolveCoverage(refs, {
+      new_notes: [{ ref: "X1", folder: "personal", title: "Shopping", summary: "  " }],
+      placements: [{ ...sure, note: "X1" }],
+    });
+    assert.throws(() => assertResolvedPlan(refs, emptySummary), /summary/);
+    assert.throws(() => savedPlan(refs, emptySummary), /summary/);
+    await assert.rejects(applyPlan(refs, emptySummary), /summary/);
+    pass("blank new-note summary rejects plan before database writes, including dry/apply");
+    const sectionPlan = resolveCoverage(refs, { ...empty, placements: [{ ...sure, section: "To buy" }] });
+    assert.equal(savedPlan(refs, sectionPlan).plan.filed[0].section, "To buy");
+    assert.equal(resolveCoverage(refs, { ...empty, placements: [{ ...sure, section: "Year 2026" }] }).queued[0].reason, "added_detail");
+    pass("section survives saved plans and cannot introduce unsupported numbers");
     let result = resolveCoverage(refs, empty);
     assert.equal(result.queued[0].reason, "not_placed");
     assert.equal(result.filed.length + result.queued.length, refs.items.length);
@@ -87,7 +107,7 @@ async function main() {
     const numberRefs = (texts: string[], slug = "work") => buildRefs(
       [{ ...capture, body: texts.join("\n") }], [{ ...folder, slug }], [], [],
       [texts.map((text) => ({ ...item, quotes: [text] }))], "Europe/London");
-    const numberPlan = (markdown: string, title = "Meeting", summary = "", slug = "work"): RoutePlan => ({
+    const numberPlan = (markdown: string, title = "Meeting", summary = "Meeting", slug = "work"): RoutePlan => ({
       new_notes: [{ ref: "X1", folder: slug, title, summary }],
       placements: [{ ...sure, note: "X1", markdown }],
     });
@@ -231,7 +251,7 @@ async function main() {
       assert.deepEqual(await listOpenQuickCalls(), []);
       assert.deepEqual(await getPendingCaptures(), [stored]);
     });
-    pass("apply transaction rolls back every write; captures pending; isolated schema removed");
+    if (database) pass("apply transaction rolls back every write; captures pending; isolated schema removed");
 
     assert.equal(localDate(date, "Europe/London"), "2026-07-15");
     assert.equal(localDate(new Date("2026-07-15T23:30:00Z"), "Europe/London"), "2026-07-16");
@@ -250,7 +270,7 @@ async function main() {
         const file = join(directory, "added-detail.json");
         const saved = savedPlan(run, plan);
         const legacyPlan = { newNotes: numberPlan("2026-09-12").new_notes,
-          filed: [{ item: run.items[0], note: "X1", markdown: "2026-09-12" }], queued: [] };
+          filed: [{ item: run.items[0], note: "X1", section: "", markdown: "2026-09-12" }], queued: [] };
         assert.throws(() => savedPlan(run, legacyPlan), /unverified numbers/);
         await writeFile(file, JSON.stringify({ ...saved, plan: legacyPlan }));
         await assert.rejects(applySavedRun(file, directory), /unverified numbers/);
@@ -315,7 +335,7 @@ async function main() {
         const skipped = await insertCapture({ body: "buy milk", capturedAt: date });
         const area = await createFolder({ name: "Personal", slug: "personal" });
         const run = buildRefs([pending, skipped], [area], [], [], [[item], [item]], "Europe/London");
-        const plan = resolveCoverage(run, { new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "" }],
+        const plan = resolveCoverage(run, { new_notes: [{ ref: "X1", folder: "personal", title: "new", summary: "shopping" }],
           placements: [{ ...sure, note: "X1" }, { ...sure, item: "I2", note: "X1" }] });
         const file = join(directory, "skipped.json");
         await writeFile(file, JSON.stringify(savedPlan(run, plan)));
@@ -333,8 +353,10 @@ async function main() {
       });
     } finally { await rm(directory, { recursive: true, force: true }); }
 
-    await checkOrganizeRuns(pass);
-    await checkOrganizeRetry(pass);
+    if (database) {
+      await checkOrganizeRuns(pass);
+      await checkOrganizeRetry(pass);
+    }
 
     for (const job of ["split", "route"]) {
       assert.deepEqual(samplingParameters("claude-haiku-4-5", job), { temperature: 0 });
@@ -348,6 +370,7 @@ async function main() {
     for (const file of await readdir(join(process.cwd(), "lib/organizer"))) {
       if (file.endsWith(".ts")) assert.ok(!(await readFile(join(process.cwd(), "lib/organizer", file), "utf8")).includes("createFolder"), file);
     }
+    if (!database) console.log("Database integration checks skipped; opt in with --database.");
     console.log(`${passed}/${passed} cases passed; capability gating verified; no organizer folder creation; zero model calls.`);
   } catch (error) {
     console.error(error); process.exitCode = 1;

@@ -1,185 +1,132 @@
-# docs/slice-7-spec.md — Slice 7: instant capture, and a UI that doesn't look vibe-coded
+# docs/slice-7-spec.md — Slice 7: readable notes
 
-Written 2026-09-28. **Current slice.** Read `AGENTS.md`, `ARCHITECTURE.md` and
-`docs/design-system.md` before writing a line. The grader that used to be slice 7 moves to slice 9.
+Rewritten 2026-09-30. **Current slice.** Branch: `slice-7-readable-notes` — a push to `main` deploys,
+so nothing merges until the verification at the bottom passes. Read `AGENTS.md` and `ARCHITECTURE.md`
+first.
 
-**Why this is the next slice, and not the organiser quality pass:** the organiser's structure problems
-(RC1, RC7) are the most important thing wrong with the *product*, but they have now been tuned against
-Sahil's own vault twice, and a third pass would fix what bothers one person. Slice 7 plus slice 8 are
-what make it possible to put Mynd in five other people's hands; their misfiles are what aims the
-quality pass. Ask is already judged good and is not touched here.
+**Superseded:** the earlier slice 7 (instant capture + the design pass, commit `4c3287e`) is parked.
+Its restyle was built and rejected on 2026-09-28; `docs/design-system.md` is superseded with it. The
+baseline is the plain white screens, changed as little as possible (GTM10).
 
-This slice contains no model calls, no schema change, and no new SQL. It is presentation and manifest
-work only. That is deliberate — it should be verifiable in an afternoon and impossible to break the
-five non-negotiable rules with.
-
----
-
-## S7-1 — Instant capture (do this first; the first part is one line)
-
-The goal is *icon or gesture, then talking, with nothing in between*. Mynd does not record audio —
-`app/capture/page.tsx` is a textarea and dictation comes from the phone keyboard's mic — so what is
-being made instant is **reaching an already-focused textarea**.
-
-### S7-1a. `start_url` becomes `/capture`
-In `app/manifest.ts`, change `start_url` from `/` to `/capture`. Today the home-screen icon opens the
-Vault, which fetches over the network, and capture is a further tap. After this the icon lands on a
-focused field. **This one line is the largest friction cut available in the whole app.**
-
-Consequence to handle: the Vault must be one tap *from* capture (the quiet `Vault` link in the header,
-per the design doc). Capture is the frequent act, so this is the right way round regardless.
-
-### S7-1b. Manifest `shortcuts`
-Add the `shortcuts` member so long-pressing the Android launcher icon offers `Capture` and `Ask`
-directly:
-
-```ts
-shortcuts: [
-  { name: "Capture a thought", short_name: "Capture", url: "/capture" },
-  { name: "Ask your notes",    short_name: "Ask",     url: "/ask" },
-],
-```
-
-### S7-1c. Manifest `share_target` — the Android-only win
-Android's share sheet can target an installed PWA. This means **from any app on the phone** — a
-browser, WhatsApp, a podcast player — share text to Mynd and it becomes a capture. iPhone has no
-equivalent, so this is a genuine advantage of Sahil's phone, not a consolation prize.
-
-```ts
-share_target: {
-  action: "/capture",
-  method: "GET",
-  params: { title: "title", text: "text", url: "url" },
-},
-```
-
-`app/capture/page.tsx` then reads `?text=`, `?title=` and `?url=` on mount and seeds the draft with
-them (joined by a blank line, url last). Rules:
-- It seeds the draft **only when the draft is empty**, so a shared item can never overwrite something
-  half-dictated. This is the same instinct as CAP2 — never lose the user's text.
-- After seeding, strip the query params with `history.replaceState` so a reload does not re-seed.
-- The capture POST body stays exactly as it is; shared text is just text.
-
-### S7-1d. Device gestures — no code, Sahil configures these
-OnePlus / OxygenOS, to be tried in this order and the winner written into `docs/first-five.md` as an
-onboarding step. An installed PWA appears to the launcher as an app, so it can usually be targeted
-directly; where a gesture picker only lists native apps, a 1×1 home-screen shortcut in the dock is the
-fallback.
-
-1. **Install the PWA and put the icon in the dock**, bottom row. One tap from every home screen. Do
-   this even if a gesture works — it is the baseline.
-2. **Screen-off gestures** — Settings, Special features (or Gestures & motions), Screen-off gestures:
-   draw a letter (O, V, S, M) to launch an app. Draw `M` for Mynd, from a dark screen, without
-   unlocking into anything else first. This is the closest thing on Android to what Wispr Flow feels
-   like.
-3. **Quick Launch** — long-press the fingerprint sensor for a shortcut ring.
-4. **Quick Tap / tap the back of the phone** — present on some OxygenOS builds under Accessibility.
-   This is the Android sibling of the iPhone back-tap idea; if the build has it, it is the best one.
-5. **"Hey Google, open Mynd"** — works today, zero setup, and is hands-free in a way none of the
-   others are.
-6. Only if none of the above land: a Tasker mapping from a double volume press to the capture URL.
-
-**A floating overlay button stays unbuilt.** Android permits it, but only from a native app with an
-overlay permission, and iPhone forbids it outright — so it means a second codebase and a store review
-for one platform. It is a retention mechanic, not a trial mechanic. `AGENTS.md` deferred it and that
-still holds; revisit when there is evidence people capture often enough to want it.
+**Why this slice, and only this:** the next step is watching one real person use Mynd for twenty
+minutes (GTM11). If notes read as walls of text, they bounce *because of that*, and we learn nothing
+about whether auto-organise + Ask land. The bar is **"not embarrassing"**, not "Obsidian". Everything
+not listed here is out.
 
 ---
 
-## S7-2 — The design pass
+## R1 — Notes get sections (the organiser inserts, never rewrites)
 
-Implement `docs/design-system.md` exactly. Do not invent values; if something is missing from that
-file, stop and ask rather than choosing.
+Today `appendToNote` (`lib/db/queries.ts`) concatenates onto the end of `notes.body`, so no note has a
+single heading (RC1). After this slice, Stage 2 chooses a **note + section**.
 
-1. **`app/globals.css`** holds every token, on `:root` and again under
-   `@media (prefers-color-scheme: dark)`. Set `color-scheme: light dark` so form controls and
-   scrollbars follow too — this is a one-line fix for the commonest "broken in dark mode" tell.
-2. **Delete the inline styles** as each screen is converted. The end state is no `style={{…}}` holding
-   a colour, a size or a radius. Layout-only inline style is tolerable; a hard-coded `#ccc` is not.
-3. **Screens, in this order:** Capture, Vault (`app/page.tsx`), Ask, Folder, Note, Quick Calls,
-   Captures. Each one is finished and checked in both themes before the next is started.
-4. **The run-summary line on `/`** collapses to `Organised 2 hours ago`, with the detail behind a tap
-   and **cost hidden from anyone who is not the owner**. The current line is the single most
-   "unfinished software" thing in the app.
-5. **Empty and loading states on every screen**, per principles 9 — skeletons in the shape of the
-   real content, and empty text that names the next action.
-6. **`TokenGate`** is the literal first screen a new person sees and is currently a bare prompt. It
-   gets the same treatment: the product name, one line of what Mynd is, one field, one button.
+- `Placement` in `lib/organizer/route-types.ts` gains `section: string` — the text of a `##` heading,
+  or `""` for no section. Add it to `routeSchema` (required) and to the saved-plan / resolved-plan
+  types so `--dry` then `--apply` carries it.
+- Stage 3 (`lib/organizer/stage3-apply.ts`), for an existing note:
+  - If the body has a line exactly `## <section>`, insert the block at the end of that section — i.e.
+    immediately before the next line starting `## `, or at the end of the body.
+  - If not, add `\n\n## <section>\n` + block at the end of the body.
+  - `""` keeps today's behaviour: append at the end.
+  - Heading match is exact after trimming; do not fuzzy-match. The prompt is shown the existing
+    headings (below), so it can reuse them.
+- For a new note, group its filed blocks by section in first-seen order: no-section blocks first, then
+  each `## section` followed by its blocks.
+- **The guarantee (RN1, amends D1/UI2):** a pure function computes the new body, and code asserts
+  that `newBody.slice(0, at) + newBody.slice(at + inserted.length) === oldBody` for the recorded
+  insertion point. If the assertion fails, throw — the run's transaction writes nothing. The organiser
+  may insert; it may never alter or remove an existing byte.
+- The read-modify-write happens inside the existing run transaction. Notes are already row-locked by
+  `lockOrganizerTargets`; read the body *after* the lock, not from the pre-run snapshot. Replace the
+  concatenating `appendToNote` call in Stage 3 with a new `insertIntoNote(id, section, block)` in
+  `lib/db/queries.ts` (SQL stays in `lib/db/`).
+- Resolving a Quick Call keeps its plain end-append (`resolveQuickCall` in `queries.ts`). No change.
+- Routing input already carries each existing note's full body (`lib/organizer/refs.ts`), so the
+  headings are visible to Stage 2; R2 tells it to target an existing heading rather than invent a
+  near-duplicate. No input change needed.
+
+## R2 — House style in the route prompt (`lib/prompts/route.ts`)
+
+One block of rules, written once:
+
+- **Main item, then detail.** A thing (an item to buy, a task, a book, a person) is a list item or a
+  checkbox. What was said *about* it is a nested sub-bullet beneath it (two-space indent), never a
+  sibling line. (RC7a, within one placement.)
+- **Sections name kinds of thing**, short noun phrases: `## To buy`, `## Ideas`, `## Open questions`.
+  Reuse an existing heading from the routing input rather than inventing a close variant. A note with
+  a single topic may use no section at all.
+- **Titles are noun phrases**, not sentences: `Shopping list`, `Book ideas`, `Meeting with Priya`.
+  (A6.)
+- **One consistent list format**: no blank lines between items of the same list. (A3.)
+- The verbatim and no-new-numbers rules are unchanged and still outrank style.
+
+## R3 — No note is born without a summary
+
+- `assertResolvedPlan` (or Stage 2 resolution, whichever sees it first) rejects a new note whose
+  `summary` is empty after trimming. The plan fails the way an unverified number does — no partial
+  write. This is the direct cause of the two `things to do` notes (A1, RC3).
+- The note page shows `summary` beneath the title, in muted text. Display only.
+
+## R4 — The note page and the home page become readable (still plain white)
+
+Only `app/note/[id]/page.tsx`, `components/NoteBody`, and `app/page.tsx`. No other screen.
+
+- Default system font stack; body ~17px, line-height 1.6; content max-width ~680px, centred, 16px
+  side gutter on phones.
+- Clear heading sizes for `##`/`###` with space above; modest spacing between list items; nested
+  sub-bullets visibly indented.
+- One accent colour, used for links and checkboxes only. White background. No dark mode, no tokens
+  file, no animation.
+- The Edit mode stays the existing Markdown textarea, given the same width and font.
+
+## R5 — The debug line leaves the home screen
+
+`app/page.tsx` currently prints counts, cost and failure text. Replace it with plain words:
+
+- `Last organised 2 hours ago` (relative time), or `Not organised yet.`
+- On failure: `Organising didn't finish — your thoughts are safe and will be filed next run.`
+- No counts, no cost, no ids, no error strings. They stay in the run records and the CLI.
+
+## R6 — A tester's vault is seeded with their own folders
+
+For the watched session, each tester gets their own deployment (GTM12). Their folders are written by
+Sahil from a five-minute chat.
+
+- `lib/db/seed.ts`: when `SEED_FOLDERS_FILE` is set, read that JSON file — an array of
+  `{ name, slug, color, description }` — validate every field (non-empty strings, slug
+  `^[a-z0-9-]+$`, colour `#rrggbb`, unique slugs) and seed those **plus** `Inbox` and `Journal` with
+  the existing `INBOX_DESC` / `JOURNAL_DESC` (skip either if the file already defines that slug).
+  Invalid file → throw before writing anything. Unset → `SEED_FOLDERS` exactly as today.
+- Add `testers/` to `.gitignore` (the files describe a real person's life) and commit one
+  `testers/example.json` via `git add -f` as the template.
+- Add `SEED_FOLDERS_FILE` (commented) to `.env.example`.
 
 ---
 
-## S7-3 — A reason to come back (the cheap version)
+## Out of this slice, explicitly
 
-**Assumption, overturn in one line if wrong:** the return mechanic is the Quick Calls queue reframed
-as a small daily ritual, not a streak. A capture streak rewards volume over value, and the day it
-breaks is the day someone stops — the opposite of what five trial users need. The weekly digest
-(V2-1) is the stronger long-term hook but costs model calls and a week of build; it waits until
-people are actually using the app.
+Instant capture and manifest changes (old S7-1) · share target and links · the archive feature (the
+principle is recorded, GTM13) · restructuring the existing notes in Sahil's vault · the eval set ·
+links between notes · dates on entries · a rich-text editor · any screen other than note and home ·
+accounts (slice 8).
 
-Two additions, both free of model calls:
+## Verification
 
-1. **The decisions pill on the Vault**: `3 decisions · about 40 seconds →`, hidden at zero. Finite and
-   completable is what makes a task openable; "N items need a decision" reads as a debt.
-2. **"Since you last looked"**: one `--t-secondary` line on the Vault — `Since Tuesday: 9 thoughts
-   filed into 4 areas.` Derive it from existing rows in `lib/db/` (no new tables); "last looked" is a
-   timestamp in `localStorage`, because it is a per-viewer convenience and does not need to be durable
-   or shared. Visible accretion is the honest version of progress: it rewards the vault growing, not
-   the user performing.
+Automated (no model calls, no live database):
+- `npm run organize:check` gains cases for: insert into an existing section (lands before the next
+  `##`); insert into the last section; create a missing section; `""` section appends at the end; a
+  deliberately corrupted insert fails the byte-preservation assert; a new note with an empty summary
+  is rejected; a new note's blocks are grouped by section.
+- A seed check: `SEED_FOLDERS_FILE` set → those folders plus Inbox and Journal; an invalid file
+  throws; unset → today's six.
+- `npm run typecheck`, `npm run lint`, `npm run build`.
 
----
+Manual (Sahil):
+1. `npm run route:preview -- --ids <8–10 real capture ids> --no-notes` — the plan shows sections and
+   nested detail. A few cents; writes nothing.
+2. On the branch, locally: open a long note — headings visible, sub-bullets indented, checkboxes tick,
+   summary under the title. Edit, save, reload: still correct.
+3. Home shows "Last organised …" in words, with no cost or counts.
+4. Phone width: nothing scrolls sideways.
 
-## S7-4 — Distribution: be honest about what it is
-
-The three-part frame is right — a painful repeatable problem, a reason to return, a distribution loop
-— and on the third one the truthful answer for Mynd today is: **there is no viral loop in a private
-thought vault, and the screen itself is the distribution.** Someone asking "what is that?" over your
-shoulder is not a growth hack; for this product it is the actual channel, and it is bought entirely
-with S7-2. That is the commercial argument for spending these two days on the UI and it is why the UI
-is in the same slice as the capture work.
-
-What is *not* built now, and why:
-- Sharing note content — the vault is private and shareable content is the wrong instinct here.
-- Shareable **structure** (a folder scheme, an organisation template) is the one genuinely shareable
-  artifact a private vault has. It is already recorded as H5 / V2-2. Post-v1.
-- A shareable Ask answer with citations is the second candidate. Also post-v1.
-- Invite codes arrive with accounts in slice 8, where they are nearly free.
-
-On niching the painful problem — **assumption, overturn in one line:** the five come from solo
-founders and builders. Not a repositioning, just who gets recruited, so that five people's feedback
-points the same direction instead of five. Recorded in `docs/first-five.md`.
-
----
-
-## Out of scope for slice 7
-
-Accounts and multi-user, starter folders, organise-on-demand (all slice 8). The organiser quality pass
-(RC1–RC7). The grader (now slice 9). The weekly digest. Any new model call, table, or SQL. A native
-app. A component library or CSS framework migration.
-
----
-
-## Verification — the manual scenarios (PR2: the slice is not done until these pass on the phone)
-
-Automated first: `npm run typecheck`, `npm run lint`, `npm run build`, and the existing free checks
-(`split:check`, `organize:check`, `ask:check`, `quick-calls:check`) all still pass. No `.env` edit.
-
-Then, on the OnePlus, in **both** light and dark mode (change it in Android settings between passes):
-
-1. Reinstall the PWA. Tap the home-screen icon. **It opens the capture field with the cursor in it**,
-   and you can start dictating without another tap.
-2. Long-press the home-screen icon. `Capture` and `Ask` both appear and both work.
-3. Open a web page in Chrome, share it, choose Mynd. The capture field is **pre-filled** with the
-   title, text and URL, and sending it stores a capture that appears in Captures.
-4. Start dictating something, do not send, then share text from another app into Mynd. **The
-   half-dictated text is still there and was not replaced.**
-5. Reload a share-target capture URL. The field does **not** re-fill from the old query string.
-6. At least one device gesture (screen-off letter, Quick Launch, Quick Tap, or "Hey Google") opens
-   capture from a locked or dark screen. Write down which one won.
-7. Walk every screen — Capture, Vault, folder, note, Ask, Quick Calls, Captures — and confirm the
-   six-point checklist from the design doc on each: tokens only, 4px multiples, one primary action, no
-   blank loading state, no ids or JSON or six-decimal costs, body text readable.
-8. The Vault shows `Organised …` as one quiet line, the decisions pill with a real count, and the
-   "since you last looked" line. Resolve all open Quick Calls and confirm the pill **disappears**
-   rather than showing zero.
-9. Hand the phone to someone for ten seconds without explaining anything. Ask them what they think it
-   is. That is the real test in this slice.
+Then merge to `main`, and set up the first tester (`docs/first-five.md` §0).
