@@ -1607,3 +1607,19 @@ placements — on headings moved into `section` and on filler the house style is
 turned every note back into raw text. Tested against all three saved replays before writing it down.
 **Accepted cost:** a single meaningful sentence can now be dropped without a fallback; the prompt still
 requires keeping qualifiers, and slice 9's grader is where that gets measured.
+
+### 2026-10-11 — B20 Slice 7.1 merged; Sahil's vault cleaned up
+Final replays on 396d42e: Huberman — one Learning note, every chapter present, 0 content fallbacks;
+throttling — one note, both documents; Ayush — a Tasks checkbox with the Manchester deliberation
+nested; 1 fallback across the other four captures. Merged to `main` (deploys); live migration confirmed
+`organize_runs.content_fallbacks` and `quick_calls.subject`. Created in Learning, linked to their
+captures: "Andrew Huberman podcast" (compiled verbatim, a section per chapter) and "Throttling" (the
+guard-checked replay text). The 7 throttling Quick Calls were dismissed; the Manchester one stays open
+for Sahil. The 8 scattered Huberman notes in Personal remain until archive exists (GTM13).
+
+### 2026-10-11 — OG8 (next) Number words verify their digits
+The replay queued "Chapter two: HRV and Breathing" as `added_detail` because the model wrote
+"Chapter 2" and the no-new-numbers check (P24) found no "2" in the source. Dictation produces number
+words constantly, so this will recur. Fix: `lib/organizer/numbers.ts` treats one–twenty (and
+first–tenth) in the source as verifying their digits. Deterministic, still never accepts a number the
+user did not say. Small; goes in the next slice.

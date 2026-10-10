@@ -31,10 +31,9 @@ Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in
 **3b.2** route and write · **deploy** · **4** the screens · **3c**/**3c.1** the cron · **5**/**5.1** Ask.
 
 Done: **7** readable notes (B16, merged 2026-10-10).
-Current: **7.1 — the organiser stops fragmenting, plus a to-do view** (`docs/slice-7-1-spec.md`, branch
-`slice-7-1-organiser-fixes`): leftovers join a neighbour (OG3), a source stays one note with chapter
-sections (OG2), a Learning folder (OG1), a saner unsure bar (OG4), content-written rules (OG5), home
-cards restored, and `To do (N)` (TD1). Order agreed in GTM14: fix, to-do view, slight UI, then the tester.
+Done: **7.1** — the organiser stops fragmenting (OG1–OG7), Learning folder, to-do view (B20, merged
+2026-10-11). Next small fix: number words verify digits (OG8). Then, per GTM14: a slight UI pass, then
+the tester.
 Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
 their own deployment with folders written for them (GTM11, GTM12).
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
