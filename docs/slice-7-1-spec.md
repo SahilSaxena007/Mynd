@@ -193,3 +193,32 @@ Re-run the two previews from the bottom of this spec (Huberman with `--no-notes`
 Expect: every Huberman chapter's bullets present, Chapter 2 and Chapter 3 each one section holding
 both captures' bullets, "The real question…" present; `contentFallbacks` 0 or small and listed; the
 Ayush capture as Tasks checkboxes with the Manchester deliberation nested.
+
+---
+
+## Round 3 (2026-10-10) — the guard is right in spirit, too strict in practice
+
+Replaying 4da81b1: all Huberman content is present, chapters split correctly, Ayush is a checkbox with
+the deliberation nested — but **contentFallbacks 9 of 9** on Huberman and 4 of 5 on the rest, so every
+note was written as raw capture text. Measured against the saved run files, two causes:
+
+1. **The guard ignores the heading and the title.** The model correctly moves "Chapter 3 of andrew
+   huberman:" into `section` and "Andrew Huberman Podcast Notes:" into the note title; the guard only
+   reads `markdown`, so those sentences look dropped. Counting title + section removes *all 9*
+   Huberman fallbacks.
+2. **A per-sentence rule punishes the house style.** "Other than that I need to message my brother's
+   friend" → "- [ ] Message my brother's friend" scores 60% and fails; so does dropping "Sure, here's
+   each snippet in plain terms." Filler removal is what R2 asks for.
+
+### F11 — Guard rule, final (amends F9 / OG7)
+- Written text = the target note's title (existing or new) + `section` + `markdown`.
+- Per item: `coverage` = matched 3+-letter words / all 3+-letter words across the item's sentences;
+  a sentence is *unrepresented* below 70% (or already in the target body, as before).
+- **Fall back to verbatim only if `coverage < 0.6` or 3+ consecutive sentences are unrepresented.**
+  Scattered filler may go; a block or a large share may not.
+- Checked against all three saved replays: catches both round-1 drops (Huberman chapters 2 and 3),
+  passes all 9 Huberman chapters, Ayush, the brother's-friend task and both throttling documents; the
+  Dingbra item (35%) falls back, which is acceptable.
+- `organize:check` cases: heading moved to `section` passes; title line moved to the note title
+  passes; one dropped filler sentence passes; three consecutive dropped sentences fall back; coverage
+  0.5 falls back.

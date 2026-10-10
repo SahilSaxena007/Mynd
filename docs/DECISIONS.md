@@ -1599,3 +1599,11 @@ deterministic one, and its count is reported every run.
 ### 2026-10-10 — OG2 amended: a source splits at the user's chapter headings, all items share its label
 **Why:** one item per whole source cannot be written into one section per chapter. Splitting at the
 user's own headings (never by subject) keeps the source as the theme and gives each chapter its section.
+
+### 2026-10-10 — OG7 amended: the guard catches blocks and large shares, not filler
+Fallback to verbatim when an item's word coverage (title + section + markdown) is under 60%, or 3+
+consecutive sentences are unrepresented. **Why:** the per-sentence rule fired on 13 of 14 replayed
+placements — on headings moved into `section` and on filler the house style is meant to remove — which
+turned every note back into raw text. Tested against all three saved replays before writing it down.
+**Accepted cost:** a single meaningful sentence can now be dropped without a fallback; the prompt still
+requires keeping qualifiers, and slice 9's grader is where that gets measured.
