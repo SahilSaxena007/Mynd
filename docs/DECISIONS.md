@@ -1623,3 +1623,35 @@ The replay queued "Chapter two: HRV and Breathing" as `added_detail` because the
 words constantly, so this will recur. Fix: `lib/organizer/numbers.ts` treats one–twenty (and
 first–tenth) in the source as verifying their digits. Deterministic, still never accepts a number the
 user did not say. Small; goes in the next slice.
+
+# 2026-10-11 — The AI may improve notes; nothing is ever deleted
+
+### 2026-10-11 — GTM15 "Tester" means the first real users; next is the tidy pass, then users
+Sahil: the work is good enough to put in front of users; drop the separate "tester" step as a stage —
+the first users *are* it. Order: slice 7.2 (OG8 + tidy) → per-user vault setup (GTM12, `first-five.md`
+§0) with an **hourly** cron for user deployments (a settings change; twice a day leaves a new user
+staring at nothing) → users. No further UI pass: Sahil judged the current screens fine.
+
+### 2026-10-11 — TP1 The AI may reorganise, reorder, merge and highlight existing notes (supersedes D1/UI2's "never rewrite" for tidy)
+Filing still only inserts (RN1). A separate tidy stage may rewrite a note — merge duplicates, order
+sections, bold key lines, refresh the summary, drop exact duplicate list entries. Guarantees in code:
+every prior version saved first (`note_versions`); a merged note is archived, never deleted; any rewrite
+that loses content (coverage < 0.85 or 2 consecutive sentences), changes a checkbox, or adds a number
+is rejected; a note the user edited meanwhile is skipped; captures stay immutable.
+**Why:** Sahil: "I was restricting the utilization of AI a bit too much… it can't delete anything. It
+can change anything in the right direction." Append-only made the vault accrete forever (RC2). The
+safety D1 protected is kept by versions + guards instead of by forbidding change.
+**Rejected:** tidy as proposals the user approves (more work for the user; users ignore them).
+
+### 2026-10-11 — TP2 Tidy runs after every organise on the notes it touched; one manual full pass
+Plus their same-folder merge candidates, capped per run (`TIDY_MAX_NOTES`, default 8). After Stage 3
+commits, so tidy failing never undoes filing. `npm run tidy -- --all` does the first full pass.
+**Rejected:** weekly (mess sits for a week); only on tap (nobody taps).
+
+### 2026-10-11 — TP3 Undo is one tap: "Tidied … · Previous version" → Restore
+Restoring saves the current text as a version first. **Why:** autonomy is acceptable because reversal
+is cheap and visible.
+
+### 2026-10-11 — TP4 Archive is built now (GTM13): merged notes and a manual Archive link
+Archived notes leave folders, To do, Ask and routing; they stay reachable by URL with Restore.
+Nothing in the repo deletes a note or a version.

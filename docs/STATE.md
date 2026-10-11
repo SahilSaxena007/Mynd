@@ -32,8 +32,10 @@ Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in
 
 Done: **7** readable notes (B16, merged 2026-10-10).
 Done: **7.1** — the organiser stops fragmenting (OG1–OG7), Learning folder, to-do view (B20, merged
-2026-10-11). Next small fix: number words verify digits (OG8). Then, per GTM14: a slight UI pass, then
-the tester.
+2026-10-11).
+Current: **7.2 — the tidy pass** (`docs/slice-7-2-spec.md`, branch `slice-7-2-tidy`): number words
+(OG8), versions + archive, the AI improves existing notes under code guards, one-tap undo (TP1–TP4).
+Then (GTM15): per-user vaults with an hourly cron, and real users.
 Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
 their own deployment with folders written for them (GTM11, GTM12).
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
