@@ -45,6 +45,12 @@ notes in the same folder as **merge candidates** (title + summary only, unless c
 walks every folder, one model call per folder, same cap per call. The spend guard in `lib/model`
 applies unchanged; a refused call ends tidy for that run and is recorded (J6), filing stands.
 
+**Model input — one call per folder (decided 2026-10-11, Codex's question):** full title + summary +
+body for every non-archived note in the folder, touched notes first, up to `TIDY_MAX_INPUT_CHARS`
+(env, default 40,000) of bodies; any notes beyond that budget are sent as title + summary only and
+**may not be rewritten or absorbed in this call** (code rejects an operation naming one). No second
+call. At today's sizes (largest folder ≈ 13 short notes) every body fits.
+
 **Model output** (one call per folder; schema-validated):
 `{ operations: [{ note: <ref>, absorbs: [<ref>…], title, summary, body }] }` — rewrite `note`, folding in
 the full content of every `absorbs` note. An empty `operations` list is valid and common.
