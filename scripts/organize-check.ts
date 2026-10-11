@@ -26,6 +26,7 @@ import { withDatabase } from "../lib/db/client";
 import { quickCallsCheckDatabase } from "../lib/db/quick-calls-check-support";
 import { insertQuickCall } from "../lib/db/queries";
 import { checkContentCoverage } from "./content-coverage-check";
+import { emptyTidy } from "./tidy-fixture";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -155,6 +156,10 @@ async function main() {
       assert.equal(result.queued.length, 0);
     }
     assert.deepEqual(unverifiedNumbers("12", "twelfth"), ["12"]);
+    assert.deepEqual(unverifiedNumbers("2", "chapter two"), []);
+    assert.deepEqual(unverifiedNumbers("20 5 25", "twenty five"), ["25"]);
+    assert.deepEqual(unverifiedNumbers("0 21 30 90 100 1 10", "ZERO twenty one thirty ninety hundred FIRST tenth"), ["21"]);
+    assert.deepEqual(unverifiedNumbers("1 2 10", "someone twosome tenths"), ["1", "2", "10"]);
     assert.deepEqual(unverifiedNumbers("123456789012345678901", "123456789012345678900"), ["123456789012345678901"]);
     pass("said numbers file; words and distinct large digit runs do not match");
 
@@ -296,11 +301,11 @@ async function main() {
           filed: [{ item: run.items[0], note: "X1", section: "", markdown: "2026-09-12" }], queued: [] };
         assert.throws(() => savedPlan(run, legacyPlan), /unverified numbers/);
         await writeFile(file, JSON.stringify({ ...saved, plan: legacyPlan }));
-        await assert.rejects(applySavedRun(file, directory), /unverified numbers/);
+        await assert.rejects(applySavedRun(file, directory, emptyTidy), /unverified numbers/);
         assert.deepEqual(await organizeRowCounts(), { notes: 0, sources: 0, calls: 0, modelCalls: 0 });
         assert.deepEqual(await getPendingCaptures(), [stored]);
         await writeFile(file, JSON.stringify(saved));
-        assert.deepEqual(await applySavedRun(file, directory), plan);
+        assert.deepEqual(await applySavedRun(file, directory, emptyTidy), plan);
         const calls = await listOpenQuickCalls();
         assert.equal(calls[0].reason, "added_detail");
         assert.equal(calls[0].itemText, stored.body);
@@ -318,7 +323,7 @@ async function main() {
         const file = join(directory, "dry.json");
         const saved = savedPlan(run, plan);
         await writeFile(file, JSON.stringify(saved));
-        assert.deepEqual(await applySavedRun(file, directory), plan);
+        assert.deepEqual(await applySavedRun(file, directory, emptyTidy), plan);
         const notes = await getNotesWithBodies();
         assert.equal(notes.find((note) => note.id === existing.id)?.body, "original bytes\nbuy milk\nwith line breaks");
         const fresh = notes.find((note) => note.id !== existing.id)!;
@@ -334,11 +339,11 @@ async function main() {
         assert.equal(records.length, 2);
         const appliedRecords = records.filter((record) => record.appliedFrom === file);
         assert.equal(appliedRecords.length, 1);
-        assert.equal(appliedRecords[0].modelCalls, 0);
-        pass("saved dry run writes exact reviewed blocks and queues with zero model calls");
+        assert.ok(appliedRecords[0].tidy);
+        pass("saved dry run writes reviewed filing blocks and records the separate post-commit tidy");
 
         const before = await organizeRowCounts();
-        await assert.rejects(applySavedRun(file, directory), /no longer pending/);
+        await assert.rejects(applySavedRun(file, directory, emptyTidy), /no longer pending/);
         assert.deepEqual(await organizeRowCounts(), before);
         assert.deepEqual(await getNotesWithBodies(), notes);
         assert.deepEqual(await listOpenQuickCalls(), calls);
@@ -350,7 +355,7 @@ async function main() {
           { ...saved, plan: { ...plan, filed: [] } },
           { ...saved, plan: { ...plan, filed: [plan.filed[0], plan.filed[0]] } }]) {
           await writeFile(malformed, JSON.stringify(invalid));
-          await assert.rejects(applySavedRun(malformed, directory), /saved|coverage/i);
+          await assert.rejects(applySavedRun(malformed, directory, emptyTidy), /saved|coverage/i);
         }
       });
       await withOrganizeCheckSchema(async () => {
@@ -363,7 +368,7 @@ async function main() {
         const file = join(directory, "skipped.json");
         await writeFile(file, JSON.stringify(savedPlan(run, plan)));
         await skipCaptures([skipped.id]);
-        await assert.rejects(applySavedRun(file, directory), /no longer pending/);
+        await assert.rejects(applySavedRun(file, directory, emptyTidy), /no longer pending/);
         await assert.rejects(applyPlan(run, plan), /no longer pending/);
         assert.deepEqual(await organizeRowCounts(), { notes: 0, sources: 0, calls: 0, modelCalls: 0 });
         assert.deepEqual(await getPendingCaptures(), [pending]);

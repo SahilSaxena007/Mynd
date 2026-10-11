@@ -25,7 +25,7 @@ export function askCheckDatabase() {
     }),
     query: async (sql: string, values: unknown[] = []) => {
       const normalized = sql.replace(/\s+/g, " ").trim();
-      if (normalized.startsWith("SELECT ") && normalized.includes(" FROM notes ORDER BY created_at, id")) {
+      if (normalized.startsWith("SELECT ") && normalized.includes(" FROM notes WHERE archived_at IS NULL ORDER BY created_at, id")) {
         return { rows: structuredClone(notes) };
       }
       if (normalized.startsWith("SELECT ") && normalized.includes(" FROM captures WHERE status = 'pending'")) {

@@ -45,6 +45,12 @@ notes in the same folder as **merge candidates** (title + summary only, unless c
 walks every folder, one model call per folder, same cap per call. The spend guard in `lib/model`
 applies unchanged; a refused call ends tidy for that run and is recorded (J6), filing stands.
 
+Implementation clarification (Sahil, 2026-10-11): keep one call per folder. Supply full bodies for
+the capped eligible set, title + summary for the remaining candidates. Only the full-body set can
+participate in an operation. Automatic passes prioritize touched notes; full passes start with the
+least recently updated notes. `--folder` runs a capped pass over that folder; without `--all` or
+`--folder`, the manual command revisits notes changed since the last organize run.
+
 **Model input — one call per folder (decided 2026-10-11, Codex's question):** full title + summary +
 body for every non-archived note in the folder, touched notes first, up to `TIDY_MAX_INPUT_CHARS`
 (env, default 40,000) of bodies; any notes beyond that budget are sent as title + summary only and

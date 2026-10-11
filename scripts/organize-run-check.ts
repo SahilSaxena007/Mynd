@@ -12,6 +12,7 @@ import { runOrganize } from "../lib/organizer";
 import { newRunRecord, runError } from "../lib/organizer/run-record";
 import { completeSplit } from "../lib/organizer/split-coverage";
 import type { RoutePlan } from "../lib/organizer/route-types";
+import { emptyTidy } from "./tidy-fixture";
 
 type Stages = NonNullable<Parameters<typeof runOrganize>[1]>;
 const date = new Date("2026-07-15T22:30:00Z");
@@ -19,6 +20,7 @@ const privateText = "DISTINCTIVE_PRIVATE_CAPTURE_CANARY";
 const usage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0, thinkingTokens: 0 };
 const model = "claude-haiku-4-5";
 const stages: Stages = {
+  tidyNotes: emptyTidy,
   splitCapture: async (capture) => ({ model, usage,
     data: completeSplit(capture.body, [{ topic: "test", quotes: [capture.body] }]) }),
   routeItems: async (refs) => ({ model, usage, data: {

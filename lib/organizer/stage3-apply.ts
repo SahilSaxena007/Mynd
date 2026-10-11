@@ -45,9 +45,10 @@ export function assertResolvedPlan(refs: RunRefs, plan: ResolvedPlan): void {
   if (plan.filed.length + plan.queued.length !== refs.items.length || accounted.size !== items.size) fail();
 }
 
-export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = false): Promise<ResolvedPlan> {
+export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = false,
+  touched?: (ids: string[]) => void): Promise<ResolvedPlan> {
   assertResolvedPlan(refs, resolved);
-  return withTransaction(async () => {
+  const result = await withTransaction(async () => {
     await lockOrganizerCaptures(refs.captures);
     const targets = await lockOrganizerTargets([...refs.folders.values()].map((folder) => folder.id),
       [...refs.notes.values()].map((note) => note.id));
@@ -94,6 +95,8 @@ export async function applyPlan(refs: RunRefs, resolved: ResolvedPlan, exact = f
     }
     for (const call of plan.queued) await insertQuickCall(call);
     for (const capture of refs.captures) await markCaptureProcessed(capture.id);
-    return plan;
+    return { plan, ids: [...new Set(plan.filed.map((entry) => noteIds.get(entry.note)!))] };
   });
+  touched?.(result.ids);
+  return result.plan;
 }

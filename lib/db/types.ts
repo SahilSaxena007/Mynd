@@ -41,6 +41,9 @@ export type OrganizeRunInput = {
   notesCreated: number;
   notesAppended: number;
   contentFallbacks: number;
+  notesTidied?: number;
+  notesMerged?: number;
+  tidyRejected?: number;
   costUsd: number;
   failedCaptureId: string | null;
   error: string | null;

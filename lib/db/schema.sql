@@ -106,3 +106,19 @@ CREATE TABLE IF NOT EXISTS asks (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS asks_created_at_idx ON asks (created_at DESC);
+
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS archived_at timestamptz;
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS archived_into uuid REFERENCES notes(id);
+CREATE TABLE IF NOT EXISTS note_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  note_id uuid NOT NULL REFERENCES notes(id),
+  title text NOT NULL,
+  summary text,
+  body text NOT NULL,
+  reason text NOT NULL CHECK (reason IN ('tidy', 'merge', 'restore')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS note_versions_note_created_idx ON note_versions (note_id, created_at DESC);
+ALTER TABLE organize_runs ADD COLUMN IF NOT EXISTS notes_tidied integer NOT NULL DEFAULT 0;
+ALTER TABLE organize_runs ADD COLUMN IF NOT EXISTS notes_merged integer NOT NULL DEFAULT 0;
+ALTER TABLE organize_runs ADD COLUMN IF NOT EXISTS tidy_rejected integer NOT NULL DEFAULT 0;

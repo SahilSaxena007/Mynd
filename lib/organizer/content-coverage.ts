@@ -4,7 +4,8 @@ function words(text: string): string[] {
   return text.toLowerCase().match(/\p{L}{3,}/gu) ?? [];
 }
 
-export function hasDroppedContent(itemText: string, writtenText: string, targetBody = ""): boolean {
+export function hasDroppedContent(itemText: string, writtenText: string, targetBody = "",
+  thresholds = { coverage: 0.6, consecutive: 3 }): boolean {
   const written = new Set(words(writtenText));
   // Spaces enforce whole-word boundaries when checking an already-present sentence.
   const existing = ` ${words(targetBody).join(" ")} `;
@@ -20,7 +21,7 @@ export function hasDroppedContent(itemText: string, writtenText: string, targetB
     matched += hits;
     const represented = hits / sentence.length >= 0.7 || existing.includes(` ${sentence.join(" ")} `);
     consecutive = represented ? 0 : consecutive + 1;
-    if (consecutive >= 3) return true;
+    if (consecutive >= thresholds.consecutive) return true;
   }
-  return total > 0 && matched / total < 0.6;
+  return total > 0 && matched / total < thresholds.coverage;
 }

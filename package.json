@@ -24,6 +24,8 @@
     "todo:check": "tsx scripts/todo-check.ts",
     "split:check": "tsx scripts/split-coverage-check.ts",
     "organize": "tsx scripts/organize.ts",
+    "tidy": "tsx scripts/tidy.ts",
+    "tidy:check": "tsx scripts/tidy-check.ts",
     "organize:cron": "tsx jobs/organize-cron.ts",
     "organize:check": "tsx scripts/organize-check.ts",
     "route:preview": "tsx scripts/route-preview.ts",

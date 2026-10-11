@@ -1,7 +1,8 @@
 import type { RunRefs } from "./refs";
 import type { ResolvedPlan } from "./coverage";
+import type { TidyResult } from "./stage4-tidy";
 
-export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number, details = true, thinkingTokens = 0) {
+export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, inputTokens: number, cost: number, details = true, thinkingTokens = 0, tidy?: TidyResult) {
   if (details) {
     for (const ref of new Set(plan.filed.map((entry) => entry.note))) {
       const existing = refs.notes.get(ref);
@@ -23,7 +24,12 @@ export function printPlan(refs: RunRefs, plan: ResolvedPlan, dry: boolean, input
   const appended = new Set(plan.filed.filter((entry) => refs.notes.has(entry.note)).map((entry) => entry.note)).size;
   console.log(`\nitems ${refs.items.length} | filed ${plan.filed.length} | queued ${plan.queued.length} (${counts})`);
   console.log(`contentFallbacks ${plan.contentFallbacks}`);
+  if (tidy) printTidyCounts(tidy, dry);
   console.log(`sure rate ${refs.items.length ? Math.round(100 * plan.filed.length / refs.items.length) : 0}% (target ~90%)`
     + ` | new notes ${plan.newNotes.length} | appended ${appended} | captures ${dry ? "would process" : "processed"} ${refs.captures.length}`);
   console.log(`stage 2 input ${inputTokens.toLocaleString("en-GB")} tokens | thinking ${thinkingTokens} tokens | run cost $${cost.toFixed(6)}`);
+}
+
+export function printTidyCounts(tidy: TidyResult, dry = false) {
+  console.log(`${dry ? "would tidy" : "notesTidied"} ${tidy.notesTidied} | notesMerged ${tidy.notesMerged} | tidyRejected ${tidy.tidyRejected}`);
 }

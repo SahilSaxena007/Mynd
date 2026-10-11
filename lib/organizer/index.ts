@@ -13,12 +13,13 @@ import { routePrompt } from "../prompts/route";
 import { splitPrompt } from "../prompts/split";
 import { resolveCoverage, type ResolvedPlan } from "./coverage";
 import { buildRefs, localDate, routeInput, type RunRefs } from "./refs";
-import { printPlan } from "./print";
+import { printPlan, printTidyCounts } from "./print";
 import { gatherForOrganize } from "./stage0-gather";
 import { splitCapture } from "./stage1-split";
 import { routeItems, ROUTE_MAX_TOKENS } from "./stage2-route";
 import { applyPlan, assertResolvedPlan } from "./stage3-apply";
 import { appliedCounts, newRunRecord, runError, type OrganizeStage } from "./run-record";
+import { tidyNotes, type TidyResult } from "./stage4-tidy";
 
 type SavedRefs = Omit<RunRefs, "folders" | "notes" | "newNoteRefs"> & {
   folders: [string, Folder][];
@@ -74,7 +75,7 @@ const validateSaved = new Ajv({ strict: true }).compile<{ version: number; dry: 
   }),
 });
 
-export async function applySavedRun(file: string, directory = join(process.cwd(), ".runs")) {
+export async function applySavedRun(file: string, directory = join(process.cwd(), ".runs"), tidyStage = tidyNotes) {
   const data: unknown = JSON.parse(await readFile(file, "utf8"));
   if (!validateSaved(data) || ("error" in data) || ("applied" in data && data.applied === true)) {
     throw new Error("Apply requires a successful dry run with a saved plan and reference map.");
@@ -97,9 +98,14 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
   const run = newRunRecord("manual");
   run.contentFallbacks = data.plan.contentFallbacks;
   let plan: ResolvedPlan;
+  let tidy: TidyResult | undefined;
   try {
-    plan = await applyPlan(refs, data.plan, true);
+    let touched: string[] = [];
+    plan = await applyPlan(refs, data.plan, true, (ids) => { touched = ids; });
     Object.assign(run, appliedCounts(refs, plan));
+    tidy = await withModelRun(() => tidyStage({ touched }), (cost) => { run.costUsd = cost; });
+    Object.assign(run, { notesTidied: tidy.notesTidied, notesMerged: tidy.notesMerged,
+      tidyRejected: tidy.tidyRejected, error: tidy.error });
     run.status = "ok";
   } catch (error) {
     run.error = runError("apply", error);
@@ -109,8 +115,10 @@ export async function applySavedRun(file: string, directory = join(process.cwd()
     catch { throw new Error(runError("record", null)); }
   }
   await saveRunRecord({ startedAt: new Date().toISOString(), dry: false, applied: true,
-    appliedFrom: resolve(file), plan, refs: raw, modelCalls: 0, cost: 0, contentFallbacks: plan.contentFallbacks }, directory);
-  console.log(`Applied exactly the saved plan from ${file}; zero model calls.`);
+    appliedFrom: resolve(file), plan, refs: raw, tidy, cost: run.costUsd, contentFallbacks: plan.contentFallbacks }, directory);
+  console.log(`Applied saved filing plan from ${file}; post-commit tidy recorded separately.`);
+  if (tidy) printTidyCounts(tidy);
+  console.log(`Run cost $${run.costUsd.toFixed(6)}`);
   return plan;
 }
 
@@ -126,8 +134,8 @@ export async function runOrganize(
   { dry = false, limit = 10, trigger = "manual", directory }: {
     dry?: boolean; limit?: number; trigger?: "manual" | "cron"; directory?: string;
   } = {},
-  // Tests replace only model stages; gathering, coverage, transactions and records stay real.
-  stages = { splitCapture, routeItems },
+  // Tests replace model stages; gathering, coverage, filing and records stay real.
+  stages: { splitCapture: typeof splitCapture; routeItems: typeof routeItems; tidyNotes?: typeof tidyNotes } = { splitCapture, routeItems },
 ) {
   const run = newRunRecord(trigger);
   const record: Record<string, unknown> = { startedAt: run.startedAt.toISOString(), dry, splitPrompt, routePrompt, contentFallbacks: 0 };
@@ -194,19 +202,25 @@ export async function runOrganize(
       record.plan = plan;
       if (dry) Object.assign(record, savedPlan(refs, plan));
       const results = [...splits, ...(truncated ? [truncated] : []), route];
-      const cost = results.reduce((sum, result) => sum + estimateCost(result.model, result.usage), 0);
+      let cost = results.reduce((sum, result) => sum + estimateCost(result.model, result.usage), 0);
       const thinkingTokens = results.reduce((sum, result) => sum + result.usage.thinkingTokens, 0);
       record.thinkingTokens = thinkingTokens;
       record.cost = cost;
+      let tidy: TidyResult | undefined;
       if (!dry) {
         stage = "apply";
-        plan = await applyPlan(refs, plan);
+        let touched: string[] = [];
+        plan = await applyPlan(refs, plan, false, (ids) => { touched = ids; });
         record.plan = plan;
         Object.assign(run, appliedCounts(refs, plan));
+        tidy = await withModelRun(() => (stages.tidyNotes ?? tidyNotes)({ touched, details: trigger === "manual" }), (tidyCost) => { cost += tidyCost; });
+        record.tidy = tidy;
+        Object.assign(run, { notesTidied: tidy.notesTidied, notesMerged: tidy.notesMerged,
+          tidyRejected: tidy.tidyRejected, error: tidy.error });
       }
       record.applied = !dry;
       run.status = "ok";
-      printPlan(refs, plan, dry, route.usage.inputTokens, cost, trigger === "manual", thinkingTokens);
+      printPlan(refs, plan, dry, route.usage.inputTokens, cost, trigger === "manual", thinkingTokens, tidy);
       return plan;
     }, (cost) => { run.costUsd = cost; });
   } catch (error) {

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { clearToken, getToken } from "./token";
 import type { Folder, Note, OrganizeRun } from "@/lib/db/types";
 
-export type NoteJSON = Omit<Note, "createdAt" | "updatedAt"> & { createdAt: string; updatedAt: string };
+export type NoteJSON = Omit<Note, "createdAt" | "updatedAt"> & { createdAt: string; updatedAt: string;
+  archivedAt?: string | null; archivedInto?: string | null };
 export type VaultJSON = {
   folders: (Omit<Folder, "createdAt"> & { createdAt: string })[];
   notes: NoteJSON[];

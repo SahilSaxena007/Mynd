@@ -176,3 +176,20 @@ topic, check for invented or missing content, and confirm gibberish is preserved
 verbatim. Check the ledger's model, job, token counts, and nonzero cost, and confirm
 captures remain pending with no new vault content. Repeat the limit cases in
 `docs/slice-3a-spec.md`; adjust only `lib/prompts/split.ts` when tuning split behaviour.
+
+## Slice 7.2 tidy
+
+Apply the additive migration before running this branch against a vault. Tidy runs after
+filing commits, including saved-plan filing. A tidy failure leaves filing intact and is
+recorded in the organize run. `TIDY_MAX_NOTES` defaults to 8; Journal is excluded.
+
+`npm run tidy -- --all --dry` previews guard results without changing notes or versions.
+It calls the model and records model-call accounting. `npm run tidy -- --all` applies a
+newly generated pass. Use `--folder <slug>` to limit the pass to one folder. Without either
+scope flag, tidy revisits notes changed since the last organize run. The same model spend
+guard applies; there are no retries on refusal. Full bodies are supplied only for the
+capped eligible set, with summaries for the remaining notes.
+
+`npm run tidy:check` exercises guards, merge/version transactions, archive filtering,
+concurrency, undo, API authentication and scope/budget behavior entirely offline.
+The live migration and phone checks remain the manual checklist in `docs/slice-7-2-spec.md`.

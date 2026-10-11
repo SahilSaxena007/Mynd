@@ -35,6 +35,8 @@ Done: **7.1** — the organiser stops fragmenting (OG1–OG7), Learning folder, 
 2026-10-11).
 Current: **7.2 — the tidy pass** (`docs/slice-7-2-spec.md`, branch `slice-7-2-tidy`): number words
 (OG8), versions + archive, the AI improves existing notes under code guards, one-tap undo (TP1–TP4).
+F0?F3 implemented on the branch; offline checks, typecheck, lint and build pass. Live migration,
+vault tidy and phone undo checks remain manual; not merged or deployed.
 Then (GTM15): per-user vaults with an hourly cron, and real users.
 Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
 their own deployment with folders written for them (GTM11, GTM12).
@@ -102,7 +104,7 @@ Still on the AI's honour: not inventing *words* when writing note text. Slice 9'
 
 ```
 npm run organize -- --dry                 plan the filing, write nothing (a few cents)
-npm run organize -- --apply <run file>    write exactly that reviewed plan ($0)
+npm run organize -- --apply <run file>    apply reviewed filing, then paid tidy
 npm run organize:cron                     the unattended run (what Railway calls)
 npm run route:preview -- --ids <ids> --no-notes    replay captures, never writes
 npm run vault:print                       see the vault from the terminal

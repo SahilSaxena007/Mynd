@@ -14,7 +14,7 @@ test("model boundary and spend protection (no network)", async () => {
   let today = 0;
   let requests = 0;
   let logged = 0;
-  let responseText = '{"items":[{"text":"hello","topic":"greeting"}]}';
+  let responseText = '{"items":[{"quotes":["hello"],"topic":"greeting"}]}';
   let responseStatus = 200;
   let stopReason = "end_turn";
   let failLog = false;
@@ -78,8 +78,8 @@ test("model boundary and spend protection (no network)", async () => {
     defaults();
     process.env.MAX_CALLS_PER_RUN = "1";
     await withModelRun(async () => {
-      const result = await complete<{ items: { text: string }[] }>(input);
-      assert.equal(result.data.items[0].text, "hello");
+      const result = await complete<{ items: { quotes: string[] }[] }>(input);
+      assert.equal(result.data.items[0].quotes[0], "hello");
       assert.equal(logged, 1);
       await assert.rejects(withModelRun(() => complete(input)), /MAX_CALLS_PER_RUN/);
     });

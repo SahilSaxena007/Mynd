@@ -1,5 +1,6 @@
 import { withAuth } from "@/lib/auth";
 import { getNote, updateNoteBody } from "@/lib/db/queries";
+import { latestVersion, changeNoteState } from "@/lib/db/note-versions";
 
 type Context = { params: Promise<{ id: string }> };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -9,8 +10,26 @@ export async function GET(req: Request, context: Context) {
   return withAuth(async () => {
     const { id } = await context.params;
     const note = uuid.test(id) ? await getNote(id, true) : null;
-    return note ? Response.json({ note }, { headers })
+    const version = note ? await latestVersion(id) : null;
+    const merged = note?.archivedInto ? await getNote(note.archivedInto) : null;
+    return note ? Response.json({ note, version, mergedTitle: merged?.title ?? null }, { headers })
       : Response.json({ error: "Note not found." }, { status: 404, headers });
+  })(req);
+}
+
+export async function POST(req: Request, context: Context) {
+  return withAuth(async () => {
+    const { id } = await context.params;
+    let input;
+    try { input = await req.json(); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400, headers }); }
+    if (!uuid.test(id) || !input || !["archive", "unarchive", "restore"].includes(input.action)
+      || typeof input.updatedAt !== "string" || !Number.isFinite(Date.parse(input.updatedAt))
+      || (input.action === "restore" && (typeof input.versionId !== "string" || !uuid.test(input.versionId)))) {
+      return Response.json({ error: "Invalid note action." }, { status: 400, headers });
+    }
+    const result = await changeNoteState(id, input.updatedAt, input.action, input.versionId);
+    return Response.json({ note: result.note, error: result.status === 409 ? "This note changed. Reload before trying again." : undefined },
+      { status: result.status, headers });
   })(req);
 }
 

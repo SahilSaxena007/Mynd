@@ -12,9 +12,11 @@ const captureColumns = `id, body, kind, captured_at AS "capturedAt", device,
   status, processed_at AS "processedAt", created_at AS "createdAt"`;
 const folderColumns = `id, name, slug, description, color,
   parent_id AS "parentId", created_at AS "createdAt"`;
+export const activeNotes = "archived_at IS NULL";
+
 const noteMetaColumns = `id, folder_id AS "folderId", title, summary,
   created_at AS "createdAt", updated_at AS "updatedAt"`;
-const noteColumns = `${noteMetaColumns}, body`;
+const noteColumns = `${noteMetaColumns}, body, archived_at AS "archivedAt", archived_into AS "archivedInto"`;
 const ruleColumns = `id, kind, instruction, active, created_at AS "createdAt"`;
 
 const askColumns = `id, question, answer, answered, citations, input_tokens AS "inputTokens",
@@ -66,7 +68,7 @@ export async function skipCaptures(ids: string[]): Promise<number> {
 }
 
 export async function getNotesWithBodies(): Promise<Note[]> {
-  return (await query<Note>(`SELECT ${noteColumns} FROM notes ORDER BY created_at, id`)).rows;
+  return (await query<Note>(`SELECT ${noteColumns} FROM notes WHERE ${activeNotes} ORDER BY created_at, id`)).rows;
 }
 
 const quickCallColumns = `id, capture_id AS "captureId", topic, item_text AS "itemText",
@@ -100,7 +102,7 @@ export async function resolveQuickCall(id: string, resolution: QuickCallResoluti
       if ("noteId" in resolution) {
         // Lock before detecting a checklist, so an edit cannot race the append.
         const target = (await query<Note>(
-          `SELECT ${noteColumns} FROM notes WHERE id = $1 FOR UPDATE`, [resolution.noteId],
+          `SELECT ${noteColumns} FROM notes WHERE id = $1 AND ${activeNotes} FOR UPDATE`, [resolution.noteId],
         )).rows[0];
         if (!target) throw new Response("That note no longer exists. Choose another destination.", { status: 400 });
         note = target;
@@ -147,17 +149,18 @@ export async function insertOrganizeRun(input: OrganizeRunInput): Promise<void> 
   // DM11: fail closed if a caller would let rollback erase the run's history.
   assertOutsideTransaction();
   await query(`INSERT INTO organize_runs (trigger, status, started_at, captures_processed,
-    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error, content_fallbacks)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    items_filed, items_queued, notes_created, notes_appended, cost_usd, failed_capture_id, error, content_fallbacks, notes_tidied, notes_merged, tidy_rejected)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
   [input.trigger, input.status, input.startedAt, input.capturesProcessed, input.itemsFiled,
-    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error, input.contentFallbacks]);
+    input.itemsQueued, input.notesCreated, input.notesAppended, input.costUsd, input.failedCaptureId, input.error, input.contentFallbacks, input.notesTidied ?? 0, input.notesMerged ?? 0, input.tidyRejected ?? 0]);
 }
 
 export async function getLastOrganizeRun(): Promise<OrganizeRun | null> {
   return (await query<OrganizeRun>(`SELECT id, trigger, status, started_at AS "startedAt",
     finished_at AS "finishedAt", captures_processed AS "capturesProcessed", items_filed AS "itemsFiled",
     items_queued AS "itemsQueued", notes_created AS "notesCreated", notes_appended AS "notesAppended",
-    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error, content_fallbacks AS "contentFallbacks"
+    cost_usd::float8 AS "costUsd", failed_capture_id AS "failedCaptureId", error, content_fallbacks AS "contentFallbacks", notes_tidied AS "notesTidied",
+    notes_merged AS "notesMerged", tidy_rejected AS "tidyRejected"
     FROM organize_runs ORDER BY finished_at DESC, id DESC LIMIT 1`)).rows[0] ?? null;
 }
 
@@ -187,17 +190,17 @@ export async function createFolder(input: FolderInput): Promise<Folder> {
 
 export async function getNoteSummaries(): Promise<NoteSummary[]> {
   return (await query<NoteSummary>(`SELECT id, title, summary, folder_id AS "folderId"
-    FROM notes ORDER BY created_at, id`)).rows;
+    FROM notes WHERE ${activeNotes} ORDER BY created_at, id`)).rows;
 }
 
 // Preserve microseconds: pg's Date parser truncates the save version to milliseconds.
-const editableNoteColumns = `id, folder_id AS "folderId", title, summary, body,
-  created_at AS "createdAt",
+export const editableNoteColumns = `id, folder_id AS "folderId", title, summary, body,
+  created_at AS "createdAt", archived_at AS "archivedAt", archived_into AS "archivedInto",
   to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAt"`;
-type EditableNote = Omit<Note, "updatedAt"> & { updatedAt: string };
+export type EditableNote = Omit<Note, "updatedAt"> & { updatedAt: string; archivedAt: Date | null; archivedInto: string | null };
 
 export async function getEditableNotes(): Promise<EditableNote[]> {
-  return (await query<EditableNote>(`SELECT ${editableNoteColumns} FROM notes ORDER BY created_at, id`)).rows;
+  return (await query<EditableNote>(`SELECT ${editableNoteColumns} FROM notes WHERE ${activeNotes} ORDER BY created_at, id`)).rows;
 }
 
 export function getNote(id: string): Promise<Note | null>;
@@ -233,7 +236,7 @@ export async function countOpenQuickCalls(): Promise<number> {
 
 export async function getVault(): Promise<{ folders: Folder[]; notes: NoteMeta[] }> {
   const folders = await listFolders();
-  const notes = (await query<NoteMeta>(`SELECT ${noteMetaColumns} FROM notes ORDER BY created_at, id`)).rows;
+  const notes = (await query<NoteMeta>(`SELECT ${noteMetaColumns} FROM notes WHERE ${activeNotes} ORDER BY created_at, id`)).rows;
   return { folders, notes };
 }
 

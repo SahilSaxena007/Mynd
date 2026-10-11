@@ -3,7 +3,7 @@ import { ModelProviderError } from "../model/errors";
 import type { ResolvedPlan } from "./coverage";
 import type { RunRefs } from "./refs";
 
-export type OrganizeStage = "gather" | "configure" | "split" | "route" | "coverage" | "apply" | "record";
+export type OrganizeStage = "gather" | "configure" | "split" | "route" | "coverage" | "apply" | "tidy" | "record";
 
 export function runError(stage: OrganizeStage, error: unknown): string {
   // Guard errors are plain Error objects: only their complete, fixed vocabulary is safe.
@@ -22,7 +22,8 @@ export function runError(stage: OrganizeStage, error: unknown): string {
 
 export function newRunRecord(trigger: OrganizeRunInput["trigger"]): OrganizeRunInput {
   return { trigger, status: "failed", startedAt: new Date(), capturesProcessed: 0, itemsFiled: 0,
-    itemsQueued: 0, notesCreated: 0, notesAppended: 0, contentFallbacks: 0, costUsd: 0, failedCaptureId: null, error: null };
+    itemsQueued: 0, notesCreated: 0, notesAppended: 0, contentFallbacks: 0,
+    notesTidied: 0, notesMerged: 0, tidyRejected: 0, costUsd: 0, failedCaptureId: null, error: null };
 }
 
 export function appliedCounts(refs: RunRefs, plan: ResolvedPlan) {

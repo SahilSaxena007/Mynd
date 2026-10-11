@@ -8,6 +8,7 @@ import { runOrganize } from "../lib/organizer";
 import { completeSplit } from "../lib/organizer/split-coverage";
 import { routeItems } from "../lib/organizer/stage2-route";
 import type { Capture } from "../lib/db/types";
+import { emptyTidy } from "./tidy-fixture";
 
 type Outcome = "ok" | "max_tokens" | "provider" | "schema" | "refusal";
 const usage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0, thinkingTokens: 0 };
@@ -44,7 +45,7 @@ export async function checkOrganizeRetry(pass: (label: string) => void) {
         ...(thinking === undefined ? {} : { output_tokens_details: { thinking_tokens: thinking } }) },
     }), { headers: { "content-type": "application/json" } });
   };
-  const stages = { routeItems, splitCapture: async (capture: Capture) => {
+  const stages = { routeItems, tidyNotes: emptyTidy, splitCapture: async (capture: Capture) => {
     // Exercise the same per-run accounting as a split, without producing an API request.
     await guardModelCall(8000);
     splitIds.push(capture.id);
