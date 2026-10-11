@@ -130,3 +130,46 @@ Manual (Sahil, with this terminal):
 4. If the plan is right: `npm run tidy -- --all`. Open the merged notes on the phone: content complete,
    "Tidied … · Previous version" shows, Restore works, archived notes show "Merged into".
 5. Dictate two captures that touch an existing note; after the next organise, that note is tidied.
+
+---
+
+## Round 2 (2026-10-11) — found by the first full dry run on Sahil's vault (29498db)
+
+This terminal fixed one blocker directly: the provider rejects `uniqueItems` in a JSON schema (HTTP 400
+"For 'array' type, property 'uniqueItems' is not supported"); it was removed from `tidySchema` —
+repeated references are already rejected in stage 4. Offline checks could not catch this; only a live
+call can.
+
+The dry run then proposed **2 operations for the whole vault** — Personal, with two notes both titled
+`things to do` and eight chapter notes from one podcast, got none. Causes and fixes:
+
+### T1 — Eligibility is the character budget, not the operation cap (spec F2 was not built)
+`TIDY_MAX_INPUT_CHARS` does not exist in the code; eligibility uses `TIDY_MAX_NOTES` (8), so a full pass
+only ever offers each folder's 8 oldest notes. Build F2's "Model input" paragraph as written: every
+non-archived note's body is sent, touched notes first, until the budget is spent; only notes beyond the
+budget are summary-only and ineligible. `TIDY_MAX_NOTES` caps **operations applied per run**, not what
+the model sees. In a full pass, a folder whose bodies exceed the budget is processed in successive
+budget-sized chunks (oldest first), one call each.
+
+### T2 — The prompt must make it act, not merely permit it (`lib/prompts/tidy.ts`)
+Add, plainly:
+- **Always merge** notes in the same folder with the same or near-identical titles (`things to do` +
+  `things to do`), and notes that are parts of the same named source or series (chapter notes from one
+  podcast or book) — into the oldest one, titled by the source.
+- **Rewrite a single note** when it has: inconsistent blank lines inside a list, list items that should
+  be checkboxes but are prose tasks, chapters or sections out of order, related lines scattered, a
+  missing or stale summary. Leave a note alone only when it already reads well.
+- **References:** `note` and every `absorbs` entry must be the supplied ref (`N3`), never a title.
+  Give one example operation in the prompt.
+- **Summary is plain text** — no Markdown, no `**`. **Title is one theme** — if it needs "and" to join
+  two subjects, do not merge those notes.
+
+### T3 — Code checks for T2's two format rules
+- Reject an operation whose `summary` contains `*`, `#`, `[`, or a newline (`summary format`).
+- Map nothing: an unknown ref stays a rejection (`references or scope`), as now.
+- Add both to `tidy-check`.
+
+### Round 2 verification (this terminal runs it)
+`npm run tidy -- --all --dry` on the live vault: the two `things to do` notes merge; the Huberman chapter
+notes in Personal merge into one; at least one list note is reformatted; zero `references or scope`
+rejections caused by titles-as-refs; cost reported. Then Sahil decides whether to apply.
