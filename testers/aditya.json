@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Personal",
+    "slug": "personal",
+    "color": "#7a9c73",
+    "description": "Everyday life: errands, shopping, health, home. GROUPING: one note per list or theme (e.g. 'things to buy'); lists use checkboxes and new items append to the existing list."
+  },
+  {
+    "name": "Work",
+    "slug": "work",
+    "color": "#6686ac",
+    "description": "Job stuff: meetings, tasks, people, projects. GROUPING: one note per meeting or project; follow-ups about the same meeting or project append to that note."
+  },
+  {
+    "name": "Ideas",
+    "slug": "ideas",
+    "color": "#8d79b8",
+    "description": "Thoughts, product ideas, things to explore. GROUPING: one note per idea or theme; later thoughts on the same theme append to that note."
+  },
+  {
+    "name": "To-dos",
+    "slug": "todos",
+    "color": "#b89068",
+    "description": "Things to do: calls, errands, follow-ups. GROUPING: one checklist note per area of life (e.g. 'personal to-dos', 'work to-dos'). Each task is a checkbox - [ ] …. Keep any timing exactly as said ('next week', 'on the 12th'); never turn it into a date. Shopping lists are not to-dos; they belong in Personal."
+  }
+]

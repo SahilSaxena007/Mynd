@@ -32,7 +32,7 @@ export type NoteMeta = Omit<Note, "body">;
 export type NoteSummary = Pick<Note, "id" | "title" | "summary" | "folderId">;
 
 export type OrganizeRunInput = {
-  trigger: "cron" | "manual";
+  trigger: "cron" | "manual" | "button";
   status: "ok" | "failed" | "nothing_pending";
   startedAt: Date;
   capturesProcessed: number;

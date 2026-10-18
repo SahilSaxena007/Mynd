@@ -124,7 +124,7 @@ export async function saveRunRecord(record: Record<string, unknown>, directory =
 
 export async function runOrganize(
   { dry = false, limit = 10, trigger = "manual", directory }: {
-    dry?: boolean; limit?: number; trigger?: "manual" | "cron"; directory?: string;
+    dry?: boolean; limit?: number; trigger?: "manual" | "cron" | "button"; directory?: string;
   } = {},
   // Tests replace only model stages; gathering, coverage, transactions and records stay real.
   stages = { splitCapture, routeItems },

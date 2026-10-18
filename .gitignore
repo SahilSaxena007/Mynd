@@ -31,4 +31,5 @@ coverage/
 .turbo/
 *.tsbuildinfo
 .runs/
-testers/
+testers/*
+!testers/aditya.json

@@ -116,7 +116,6 @@ function AskScreen({ question, setQuestion }: { question: string; setQuestion: (
             ? <Link href={`/note/${citation.id}`}>{labels[citation.id] ?? citation.ref}</Link>
             : <span style={{ whiteSpace: "pre-wrap" }}><em>not yet filed</em>: {labels[citation.id] ?? citation.ref}</span>}
           </p>)}
-          <small>Cost: ${ask.costUsd.toFixed(6)}</small>
         </>}
       </article>)}
   </section>;

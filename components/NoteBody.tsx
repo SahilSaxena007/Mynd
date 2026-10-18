@@ -22,10 +22,14 @@ export default function NoteBody({ body, disabled = false, onToggle, taskLine }:
 }) {
   return <div className="note-body" style={{ overflowWrap: "anywhere", overflowX: "auto" }}>
     <style jsx>{`
+      .note-body :global(h1) { font-size: 1.75rem; line-height: 1.3; margin: 1.6em 0 0.6em; }
       .note-body :global(h2) { font-size: 1.5rem; line-height: 1.3; margin: 1.6em 0 0.6em; }
       .note-body :global(h3) { font-size: 1.2rem; line-height: 1.4; margin: 1.4em 0 0.5em; }
       .note-body :global(ul), .note-body :global(ol) { padding-left: 1.6em; }
       .note-body :global(li) { margin: 0.3em 0; }
+      .note-body :global(li.task-list-item) { list-style: none; }
+      .note-body :global(ul.contains-task-list) { padding-left: 0; }
+      .note-body :global(li p) { margin: 0.3em 0; }
       .note-body :global(li > ul), .note-body :global(li > ol) { margin: 0.2em 0; }
       .note-body :global(a) { color: #245bc4; }
       .note-body :global(pre) { white-space: pre-wrap; }

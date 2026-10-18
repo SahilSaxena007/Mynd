@@ -26,6 +26,7 @@ import { withDatabase } from "../lib/db/client";
 import { quickCallsCheckDatabase } from "../lib/db/quick-calls-check-support";
 import { insertQuickCall } from "../lib/db/queries";
 import { checkContentCoverage } from "./content-coverage-check";
+import { checkOrganizeNow } from "./organize-now-check";
 
 const date = new Date("2026-07-15T22:30:00Z");
 const capture: Capture = { id: "capture", body: "buy milk", kind: "text", capturedAt: date,
@@ -55,6 +56,7 @@ async function main() {
   let requests = 0;
   globalThis.fetch = async () => { requests++; throw new Error("HTTP is forbidden in organize:check"); };
   try {
+    await checkOrganizeNow(pass);
     checkReadableNotes(pass);
     checkContentCoverage(refs, pass);
     const subject = "notes from the Andrew Huberman podcast";
