@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (140+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-09-30. **All five paths are working, live.** Scope is frozen (GTM10): make notes
+**Last updated:** 2026-10-18. **All five paths are working, live.** Scope is frozen (GTM10): make notes
 readable (slice 7), then watch one real person use Mynd for twenty minutes. Nothing else until then.
 Standing judgement from daily use: **Ask is good; organisation is the weak half.**
 
@@ -32,10 +32,13 @@ Done: **1** schema · **2** capture · **3a**/**3a.1** split, proven lossless in
 
 Done: **7** readable notes (B16, merged 2026-10-10).
 Done: **7.1** — the organiser stops fragmenting (OG1–OG7), Learning folder, to-do view (B20, merged
-2026-10-11). Next small fix: number words verify digits (OG8). Then, per GTM14: a slight UI pass, then
-the tester.
-Then: **the first watched session** (`docs/first-five.md` §0) — one heavy capturer, not a developer, in
-their own deployment with folders written for them (GTM11, GTM12).
+2026-10-11).
+Built, not merged: **7.2 — the tidy pass** (branch `slice-7-2-tidy`; dry runs pass, B22; live checks remain).
+Current: **7.3 — first-user prep** (`docs/slice-7-3-spec.md`, branch `first-user-prep`, off `main` — FU1):
+Aditya's generic folders (FU2), an "Organise now" button (FU3), the Ask cost line removed (FU4), note CSS.
+The home-screen cost line is already gone. Railway moves to Hobby with a usage limit (FU5).
+Then: **the first watched session** — Aditya, Tuesday, in his own deployment (`docs/first-five.md` §0,
+runbook in the 7.3 spec).
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
 instant capture, archive (GTM13), the grader. Slice 6 still needs its live manual check.
 Parked by GTM10: framework prompt overhaul, multi-platform, share-links, switchable structures.

@@ -1623,3 +1623,38 @@ The replay queued "Chapter two: HRV and Breathing" as `added_detail` because the
 words constantly, so this will recur. Fix: `lib/organizer/numbers.ts` treats one–twenty (and
 first–tenth) in the source as verifying their digits. Deterministic, still never accepts a number the
 user did not say. Small; goes in the next slice.
+
+# 2026-10-18 — First-user prep (Aditya)
+
+Spec: `docs/slice-7-3-spec.md`.
+
+### 2026-10-18 — FU1 First-user prep branches off `main`; the tidy pass ships separately
+Branch `first-user-prep` from `main`. `slice-7-2-tidy` stays unmerged until its live checks pass.
+**Why:** the first watched session should run proven code. Tidy is implemented and dry-run clean (B22)
+but unchecked live, and a fresh vault with a handful of notes gains little from it.
+**Rejected:** branching off `slice-7-2-tidy` (puts unverified rewriting in front of the one session
+that counts).
+
+### 2026-10-18 — FU2 Aditya gets a generic starter set (amends GTM12)
+Personal, Work, Ideas, To-dos, plus the automatic Journal and Inbox, each with a GROUPING rule, in
+`testers/aditya.json`. **Why:** Sahil's call — six broad areas fit a first session, and the session will
+show what he actually captures. GTM12 rejected a generic set because it "fits nobody"; Inbox volume in
+his vault is the test of that. Isolation is unchanged: his own Railway service, database and token.
+
+### 2026-10-18 — FU3 "Organise now": a token-gated route, one run at a time, 2-minute cooldown (amends J1)
+`POST /api/organize` behind `SECRET_TOKEN`, a Postgres try-lock shared with the cron, a cooldown
+read from `organize_runs`, and the existing spend guard. **Why:** without it a new user captures and
+sees nothing for up to twelve hours (GTM8/B-3); the session has no payoff. J1 kept the organiser off the
+web to avoid a public door; the door is now the same token that already guards capture and Ask, and
+every call stays under the per-call, per-run and daily caps.
+**Rejected:** running the organiser from the laptop during the session (works, but no user can ever do
+it); an hourly cron alone (still up to an hour of nothing — kept as an optional add-on, GTM15).
+
+### 2026-10-18 — FU4 The cost line leaves Ask
+The home-screen run/cost line was already gone (B16). The one remaining cost string, under each
+expanded answer on Ask, is removed. Cost stays in `asks` and `model_calls`.
+
+### 2026-10-18 — FU5 Railway Hobby plan with a usage limit
+The trial ended. Hobby is $5/month including $5 of usage; two small vaults are estimated at roughly
+$5–10/month together. A workspace usage limit (~$10) caps it. **Rejected:** moving to a free host
+(Vercel + Neon) — a migration before Tuesday, for a few dollars.
