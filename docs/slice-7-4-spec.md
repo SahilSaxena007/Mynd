@@ -1,7 +1,9 @@
 # docs/slice-7-4-spec.md — Slice 7.4: your own folders (after Aditya's session)
 
-Written 2026-10-21. **Current slice.** Branch: `slice-7-4-user-folders`, cut from `first-user-prep` (UF1) —
-it builds on "Organise now" and Aditya's folders, which are not on `main` yet. Read `AGENTS.md`,
+Written 2026-10-21. **Current slice.** Branch: `slice-7-4-user-folders`, cut from `first-user-prep` (UF1).
+**`first-user-prep` is Aditya's live branch** — his Railway service deploys every push to it, the way
+`main` deploys Sahil's (UF10). So never commit or push to `first-user-prep` directly: build on
+`slice-7-4-user-folders`, verify, then merge (runbook below). Read `AGENTS.md`,
 `ARCHITECTURE.md`, `docs/slice-7-3-spec.md` and the 2026-10-21 entries in `docs/DECISIONS.md` (UF1–UF9)
 first.
 
@@ -166,15 +168,24 @@ Local, against a scratch database seeded from `testers/aditya.json` (six folders
    skipped".
 
 ## Runbook — shipping to Aditya without touching his data (Sahil)
-1. In Railway, open `mynd-aditya` → Settings → Source and note **which branch it deploys** (7.3 is not on
-   `main` yet). Whichever it is, 7.4 must reach that branch only after Verification 1–5 pass locally.
+1. Aditya's service deploys `first-user-prep` (UF10). 7.4 reaches it only after Verification 1–5 pass
+   locally on `slice-7-4-user-folders`.
 2. Before the deploy, from the laptop:
    ```powershell
    $env:DATABASE_URL = "<Aditya's public database URL>"
    npm run vault:counts > before.txt
    Remove-Item Env:DATABASE_URL
    ```
-3. Merge / push. Wait for the deploy to go green in Railway.
+3. Merge and push — **this is the deploy to Aditya**:
+   ```powershell
+   git checkout first-user-prep
+   git merge slice-7-4-user-folders
+   git push origin first-user-prep
+   ```
+   Wait for the `mynd-aditya` deploy to go green in Railway. Your own vault (`main`) is untouched.
 4. Repeat step 2 into `after.txt`, then `Compare-Object (Get-Content before.txt) (Get-Content after.txt)`.
    **Expected: no output** (identical). Any line printed → stop and tell Claude before Aditya opens it.
 5. Do **not** run `db:migrate` — this slice adds no schema. (Even if run, it only adds what's missing.)
+6. **Later, for your own vault** (UF10): once Aditya has used 7.4 without trouble, merge
+   `first-user-prep` into `main` (that brings 7.3 and 7.4 to your vault). Run the same before/after
+   `vault:counts` check against your own database.

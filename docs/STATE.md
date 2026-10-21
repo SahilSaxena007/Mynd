@@ -45,7 +45,8 @@ vault, "Show completed" on to-dos, plain Quick Calls wording. Deferred: link/Ins
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
 instant capture, archive (GTM13), the grader. Slice 6 still needs its live manual check.
 Parked by GTM10: framework prompt overhaul, multi-platform, share-links, switchable structures.
-Git: work on feature branches; a push to `main` deploys.
+Git: work on feature branches. **Two live branches** (UF10): a push to `main` deploys Sahil's vault; a push
+to `first-user-prep` deploys Aditya's.
 
 ## Turning outward (2026-09-28)
 

@@ -1665,7 +1665,7 @@ Spec: `docs/slice-7-4-spec.md`. Source: Sahil's write-up of the first external s
 
 ### 2026-10-21 — UF1 Slice 7.4 branches off `first-user-prep`
 `slice-7-4-user-folders` from `first-user-prep`, because it builds on Organise now and Aditya's folders,
-which are not on `main`. Before shipping, Sahil confirms which branch Aditya's Railway service deploys.
+which are not on `main`. Aditya's service deploys `first-user-prep` (UF10).
 
 ### 2026-10-21 — UF2 The user can create folders; the organiser still cannot (amends GTM12, FU2)
 "+ New folder" on home: name, a required "What goes here?" line, optional colour. Code inserts the row;
@@ -1716,3 +1716,14 @@ on Quick Calls and after Organise now. **Why:** Aditya didn't know what a "decis
 - **Filtering Ask history by folder** — he called it "version ten" himself.
 - **Deleting or merging folders** — notes would need somewhere to go; never delete, always archive.
 - **Re-filing old notes into a new folder** — see UF4.
+
+### 2026-10-21 — UF10 Two deploy branches: `main` is Sahil's vault, `first-user-prep` is Aditya's
+Sahil confirmed in Railway: `mynd-aditya` deploys `first-user-prep`; the production service deploys
+`main`. A push to either is a live deploy to that person. Work happens on feature branches, merged into
+`first-user-prep` only after local verification. Features reach `main` later by merging
+`first-user-prep` into `main` — the original ask was "every instance gets it", so the branches converge
+rather than fork. Aditya-only data (`testers/aditya.json`) is harmless on `main`: it is used only when
+`SEED_FOLDERS_FILE` names it.
+**Why:** Sahil wants Aditya's vault to move on its own schedule without his own vault changing under him.
+**Watch:** keep the gap short — a fix made on `main` must also be merged into `first-user-prep`, or the
+two drift.
