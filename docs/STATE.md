@@ -3,7 +3,7 @@
 The 30-second version. Rewritten at the end of each session. `DECISIONS.md` is the full
 history (140+ dated entries); this page is just the picture.
 
-**Last updated:** 2026-10-18. **All five paths are working, live.** Scope is frozen (GTM10): make notes
+**Last updated:** 2026-10-21. **All five paths are working, live.** Scope is frozen (GTM10): make notes
 readable (slice 7), then watch one real person use Mynd for twenty minutes. Nothing else until then.
 Standing judgement from daily use: **Ask is good; organisation is the weak half.**
 
@@ -37,8 +37,11 @@ Built, not merged: **7.2 — the tidy pass** (branch `slice-7-2-tidy`; dry runs 
 Current: **7.3 — first-user prep** (`docs/slice-7-3-spec.md`, branch `first-user-prep`, off `main` — FU1):
 Aditya's generic folders (FU2), an "Organise now" button (FU3), the Ask cost line removed (FU4), note CSS.
 The home-screen cost line is already gone. Railway moves to Hobby with a usage limit (FU5).
-Then: **the first watched session** — Aditya, Tuesday, in his own deployment (`docs/first-five.md` §0,
-runbook in the 7.3 spec).
+Done: **the first watched session** — Aditya, in his own deployment. He wanted his own folders, and asked
+that updates never wipe his data.
+Current: **7.4 — your own folders** (`docs/slice-7-4-spec.md`, branch `slice-7-4-user-folders` off
+`first-user-prep` — UF1): create and edit folders with a soft limit at ten, seed only touches an empty
+vault, "Show completed" on to-dos, plain Quick Calls wording. Deferred: link/Instagram capture (UF9).
 After, re-cut from that session's evidence: accounts (8), the organiser-quality pass (RC1–RC7),
 instant capture, archive (GTM13), the grader. Slice 6 still needs its live manual check.
 Parked by GTM10: framework prompt overhaul, multi-platform, share-links, switchable structures.
@@ -80,7 +83,8 @@ spend           $0.473 across 98 model calls, all time
 - **The organiser only appends to notes.** You may edit them by hand; it may not (UI2).
 - **Your edits and the organiser's cannot clobber each other** — saves carry the note's exact
   last-read timestamp, checked under a row lock (UI3).
-- **The organiser cannot create folders.** The capability does not exist on its path.
+- **The organiser cannot create folders.** The capability does not exist on its path. The user can, from
+  home (7.4).
 - **Nothing ever deletes a capture.** No DELETE statement anywhere in the repo.
 - **Spending is capped** per call, per run and per day, and fails closed if a limit is missing.
 - **Asking never writes to the vault** — one `asks` row and one `model_calls` row, nothing else.

@@ -1658,3 +1658,61 @@ expanded answer on Ask, is removed. Cost stays in `asks` and `model_calls`.
 The trial ended. Hobby is $5/month including $5 of usage; two small vaults are estimated at roughly
 $5–10/month together. A workspace usage limit (~$10) caps it. **Rejected:** moving to a free host
 (Vercel + Neon) — a migration before Tuesday, for a few dollars.
+
+# 2026-10-21 — Your own folders (after Aditya's session)
+
+Spec: `docs/slice-7-4-spec.md`. Source: Sahil's write-up of the first external session (Aditya).
+
+### 2026-10-21 — UF1 Slice 7.4 branches off `first-user-prep`
+`slice-7-4-user-folders` from `first-user-prep`, because it builds on Organise now and Aditya's folders,
+which are not on `main`. Before shipping, Sahil confirms which branch Aditya's Railway service deploys.
+
+### 2026-10-21 — UF2 The user can create folders; the organiser still cannot (amends GTM12, FU2)
+"+ New folder" on home: name, a required "What goes here?" line, optional colour. Code inserts the row;
+the organiser picks it up on its next run because it reads folders at the start of every run.
+**Why:** Aditya wanted travel, movies and Instagram saves — areas no generic set predicts. A folder is
+only useful to the organiser through its description, so the description is required, and a default
+GROUPING rule ("One note per topic; new items on the same topic append to that note.") is appended when
+the user doesn't write one. **Unchanged:** organiser-created folders stay rejected (OG1); the
+capability does not exist on its path.
+
+### 2026-10-21 — UF3 Soft limit at ten folders, confirmed in code, never a block
+Creating the 11th and every later folder asks "You already have N folders… Create anyway?". The server
+returns `needsConfirm` unless the request carries the confirmation, so the limit holds even if the UI
+misbehaves. Ten counts every folder shown, Journal and Inbox included.
+**Why:** too many folders makes routing and finding worse; Sahil's call is a nudge, not a wall.
+
+### 2026-10-21 — UF4 A new folder applies to new captures only
+Existing notes are never moved or re-filed into it. **Why:** moving notes is rewriting the vault — the
+tidy pass's job (7.2), with its versions and guards. Re-filing is deferred (UF9).
+
+### 2026-10-21 — UF5 Folders are editable; the slug never changes; Journal and Inbox keep their rules
+Name, description and colour edit from the folder page; edits change future routing only. The slug is
+fixed at creation, so links and code that depends on `journal` keep working. Journal's and Inbox's
+descriptions are locked — Journal's carries the one-note-per-day rule the date titles depend on.
+
+### 2026-10-21 — UF6 Seeding only ever touches an empty vault; deploys never touch data
+`seed()` inserts nothing if any folder exists. Deploys already run only install, build and start —
+no migrate, no seed (E7) — and that stays. `schema.sql` stays additive only. A read-only
+`vault:counts` command makes "nothing changed" checkable before and after a deploy.
+**Why:** Aditya asked outright whether updates would wipe his data. The real hole was not deploys but
+the seed: run without `SEED_FOLDERS_FILE` against his database it would have added Sahil's Tasks, Mynd
+and Learning folders.
+
+### 2026-10-21 — UF7 Ticked to-dos stay in their notes; "Show completed" reveals them
+Ticking already writes `- [x]` and deletes nothing; the item just leaves the list, which read as
+deletion. The to-do view gains a hidden-by-default "Show completed" toggle; unticking restores.
+**Rejected:** an archive table or moving done items elsewhere — the note line already is the archive,
+and a second copy could drift. **Watch:** when the tidy pass (7.2) merges, it must keep `- [x]` lines.
+
+### 2026-10-21 — UF8 Quick Calls say what happened, in plain words
+"1 note I wasn't sure where to file — pick a folder for it" replaces "1 item needs a decision" on home,
+on Quick Calls and after Organise now. **Why:** Aditya didn't know what a "decision" was.
+
+### 2026-10-21 — UF9 Deferred from Aditya's session
+- **Link / Instagram / share-sheet capture** — his strongest request and likely important; needs its
+  own design pass (what is stored for a link, fetching, a PWA share target). AGENTS.md already defers
+  link capture (`captures.kind` is the seat).
+- **Filtering Ask history by folder** — he called it "version ten" himself.
+- **Deleting or merging folders** — notes would need somewhere to go; never delete, always archive.
+- **Re-filing old notes into a new folder** — see UF4.
