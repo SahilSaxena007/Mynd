@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
-import { getFolderBySlug, withTransaction } from "./queries";
+import { getFolderBySlug, listFolders, withTransaction } from "./queries";
 import { query } from "./transaction";
 import type { Folder, FolderInput } from "./types";
+
+export const DEFAULT_GROUPING = "GROUPING: One note per topic; new items on the same topic append to that note.";
 
 export const JOURNAL_DESC = "Daily journal and personal reflections. GROUPING: one note per calendar day, titled by date (YYYY-MM-DD). Same-day entries append to that day's note.";
 export const INBOX_DESC = "Catch-all for items the organizer could not confidently place. GROUPING: one note per item; review and re-file later.";
@@ -34,8 +36,18 @@ export async function loadSeedFolders(file = process.env.SEED_FOLDERS_FILE): Pro
 }
 
 export async function seed(): Promise<Folder[]> {
-  const inputs = await loadSeedFolders(); // Validate the entire file before any database work.
+  return (await seedWithResult()).folders;
+}
+
+export async function seedWithResult(): Promise<{ folders: Folder[]; skipped: boolean }> {
   return withTransaction(async () => {
+    await query("SELECT pg_advisory_xact_lock(715001)");
+    // Coordinate with user folder creation too: an empty vault must stay empty
+    // between the check and insertion of the initial set.
+    await query("SELECT pg_advisory_xact_lock(715004)");
+    const count = Number((await query<{ count: string }>("SELECT count(*) FROM folders")).rows[0].count);
+    if (count > 0) return { folders: await listFolders(), skipped: true };
+    const inputs = await loadSeedFolders();
     const folders: Folder[] = [];
     for (const input of inputs) {
       // Re-running the seed preserves any edits to existing folders.
@@ -46,6 +58,6 @@ export async function seed(): Promise<Folder[]> {
       if (!folder) throw new Error("Seed folder could not be read back.");
       folders.push(folder);
     }
-    return folders;
+    return { folders, skipped: false };
   });
 }

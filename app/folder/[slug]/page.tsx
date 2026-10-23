@@ -1,13 +1,16 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import TokenGate from "@/components/TokenGate";
 import { useVault } from "@/components/vault-data";
 import { folderColor } from "@/components/folder-colors";
+import FolderForm from "@/components/FolderForm";
 
 function FolderView({ slug }: { slug: string }) {
-  const { vault, error } = useVault();
+  const { vault, error, reload } = useVault();
+  const [editing, setEditing] = useState(false);
+  const [message, setMessage] = useState("");
   const folder = vault?.folders.find((folder) => folder.slug === slug);
   const notes = vault?.notes.filter((note) => note.folderId === folder?.id)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
@@ -17,6 +20,12 @@ function FolderView({ slug }: { slug: string }) {
       : !folder ? <h1>Folder not found</h1> : <>
         <h1 style={{ borderLeft: `8px solid ${folderColor(folder)}`, paddingLeft: 12 }}>{folder.name}</h1>
         {folder.description && <p>{folder.description}</p>}
+        {editing ? <FolderForm folder={folder} onCancel={() => setEditing(false)} onSaved={() => {
+          setEditing(false);
+          setMessage("Folder saved.");
+          void reload().catch(() => setMessage("Folder saved. Could not refresh the vault. Reload to see it."));
+        }} /> : <button type="button" onClick={() => { setEditing(true); setMessage(""); }}>Edit folder</button>}
+        {message && <p role="status">{message}</p>}
         {!notes?.length ? <p>No notes in this folder yet.</p> : notes.map((note) => <article key={note.id}>
           <Link href={`/note/${note.id}`} style={{ display: "block", padding: "12px 0" }}>
             <h2>{note.title}</h2>{note.summary && <p>{note.summary}</p>}

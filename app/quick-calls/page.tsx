@@ -1,5 +1,7 @@
 "use client";
 
+import { quickCallsCopy } from "@/lib/quick-calls-copy";
+
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import TokenGate from "@/components/TokenGate";
@@ -85,8 +87,7 @@ function QuickCalls() {
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     {!queue ? <p role="status">Loading…</p> : <>
-      <p>{rows.filter((row) => !row.filed).length} need a decision</p>
-      {!rows.length && <p>All caught up.</p>}
+      <p>{rows.some((row) => !row.filed) ? quickCallsCopy(rows.filter((row) => !row.filed).length) : "All caught up."}</p>
       {rows.map((row) => <QuickCallCard key={row.call.id} call={row.call} filed={row.filed}
         folders={queue.folders} notes={queue.notes}
         onFiled={(filed) => {

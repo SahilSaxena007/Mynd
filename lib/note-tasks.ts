@@ -17,6 +17,11 @@ export function extractTodoTasks(body: string): { line: number }[] {
     .map((item) => ({ line: item.position!.start.line }));
 }
 
+export function extractDoneTasks(body: string): { line: number }[] {
+  return taskItems(parser.parse(body)).filter((item) => item.checked === true)
+    .map((item) => ({ line: item.position!.start.line }));
+}
+
 // Render one task with its ordinary nested detail, but render nested tasks separately.
 // Original positions survive so every checkbox still addresses the saved source line.
 export function remarkTaskOnly({ line }: { line: number }) {

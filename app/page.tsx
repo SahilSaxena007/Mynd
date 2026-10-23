@@ -6,6 +6,8 @@ import TokenGate from "@/components/TokenGate";
 import { useVault, vaultFetch } from "@/components/vault-data";
 import { folderColor } from "@/components/folder-colors";
 import { extractTodoTasks } from "@/lib/note-tasks";
+import FolderForm from "@/components/FolderForm";
+import { quickCallsCopy } from "@/lib/quick-calls-copy";
 
 function relativeTime(value: string): string {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
@@ -20,6 +22,8 @@ function relativeTime(value: string): string {
 
 function Vault() {
   const { vault, error, reload } = useVault();
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [folderMessage, setFolderMessage] = useState("");
   const [organising, setOrganising] = useState(false);
   const [organizeMessage, setOrganizeMessage] = useState("");
   async function organise() {
@@ -31,7 +35,7 @@ function Vault() {
       const result = await response.json();
       setOrganizeMessage(response.ok
         ? result.status === "nothing_pending" ? "Nothing waiting to organise."
-          : `Filed ${result.filed} thoughts.${result.queued > 0 ? ` ${result.queued} need a decision.` : ""}`
+          : `Filed ${result.filed} thoughts.${result.queued > 0 ? ` ${result.queued} I wasn't sure where to file — see Quick Calls.` : ""}`
         : result.error);
       try { await reload(); }
       catch { setOrganizeMessage((message) => `${message} Could not refresh the vault. Reload to try again.`); }
@@ -63,7 +67,13 @@ function Vault() {
           </Link>;
         })}
       </div>
-      <p><Link href="/quick-calls">{vault.openQuickCalls} {vault.openQuickCalls === 1 ? "item needs" : "items need"} a decision</Link>
+      {creatingFolder ? <FolderForm onCancel={() => setCreatingFolder(false)} onSaved={(name) => {
+        setCreatingFolder(false);
+        setFolderMessage(`Created ${name}. New thoughts can be filed there from the next organise.`);
+        void reload().catch(() => setFolderMessage(`Created ${name}. Could not refresh the vault. Reload to see it.`));
+      }} /> : <button type="button" onClick={() => { setCreatingFolder(true); setFolderMessage(""); }}>+ New folder</button>}
+      {folderMessage && <p role="status">{folderMessage}</p>}
+      <p><Link href="/quick-calls">{quickCallsCopy(vault.openQuickCalls)}</Link>
         {todoCount > 0 && <> · <Link href="/todo">To do ({todoCount})</Link></>}</p>
     </>}
   </main>;

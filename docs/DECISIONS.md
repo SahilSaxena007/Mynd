@@ -1727,3 +1727,10 @@ rather than fork. Aditya-only data (`testers/aditya.json`) is harmless on `main`
 **Why:** Sahil wants Aditya's vault to move on its own schedule without his own vault changing under him.
 **Watch:** keep the gap short — a fix made on `main` must also be merged into `first-user-prep`, or the
 two drift.
+
+### 2026-10-23 — B23 Slice 7.4 verified locally by Sahil
+All five manual checks passed against a throwaway local Postgres (port 55432, `.runs/pgtest`) seeded from
+`testers/aditya.json`: Travel created and the Dolomites capture filed there; the soft limit asked at the
+11th and 12th; rename kept notes and URL, Journal's rule locked; Show completed revealed and restored a
+ticked to-do; Quick Calls wording. Codex's automated and browser checks: `docs/slice-7-4-verification.md`.
+Remaining: the before/after `vault:counts` comparison on Aditya's live vault at deploy (Verification 6).

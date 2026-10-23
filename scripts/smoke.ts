@@ -110,6 +110,11 @@ async function seedTest() {
   const first = await seed();
   const second = await seed();
   assert.deepEqual(second, first);
+  if (before.length) {
+    assert.deepEqual(await db.listFolders(), before);
+    pass("Existing vault is unchanged; seed skips every insert");
+    return;
+  }
   for (const expected of SEED_FOLDERS) {
     const folder = await db.getFolderBySlug(expected.slug);
     assert.ok(folder);

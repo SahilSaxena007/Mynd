@@ -5,12 +5,13 @@ import Link from "next/link";
 import TokenGate from "@/components/TokenGate";
 import NoteBody from "@/components/NoteBody";
 import { useVault, vaultFetch, type NoteJSON } from "@/components/vault-data";
-import { extractTodoTasks, toggleTaskLine } from "@/lib/note-tasks";
+import { extractTodoTasks, extractDoneTasks, toggleTaskLine } from "@/lib/note-tasks";
 
 function Todo() {
   const { vault, error, reload, setVault } = useVault();
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const pending = useRef(false);
 
   async function tick(note: NoteJSON, line: number) {
@@ -42,6 +43,11 @@ function Todo() {
     .filter((note) => note.folderId === folder.id)
     .map((note) => ({ folder, note, tasks: extractTodoTasks(note.body) }))
     .filter(({ tasks }) => tasks.length)) ?? [];
+  const completed = vault?.folders.flatMap((folder) => vault.notes
+    .filter((note) => note.folderId === folder.id)
+    .map((note) => ({ folder, note, tasks: extractDoneTasks(note.body) }))
+    .filter(({ tasks }) => tasks.length)) ?? [];
+  const completedCount = completed.reduce((count, group) => count + group.tasks.length, 0);
 
   return <main style={{ maxWidth: 680, margin: "0 auto" }}>
     <Link href="/">← Vault</Link>
@@ -56,6 +62,17 @@ function Todo() {
         {tasks.map(({ line }) => <NoteBody key={line} body={note.body} taskLine={line}
           disabled={saving} onToggle={(sourceLine) => void tick(note, sourceLine)} />)}
       </section>)}
+    {vault && <>
+      <button type="button" onClick={() => setShowCompleted((shown) => !shown)} aria-expanded={showCompleted}>
+        {showCompleted ? "Hide completed" : `Show completed (${completedCount})`}
+      </button>
+      {showCompleted && completed.map(({ folder, note, tasks }) => <section key={note.id}>
+        <h2><Link href={`/note/${encodeURIComponent(note.id)}`}>{note.title}</Link></h2>
+        <p>{folder.name}</p>
+        {tasks.map(({ line }) => <NoteBody key={line} body={note.body} taskLine={line}
+          disabled={saving} onToggle={(sourceLine) => void tick(note, sourceLine)} />)}
+      </section>)}
+    </>}
   </main>;
 }
 

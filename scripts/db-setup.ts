@@ -1,7 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { closeDb } from "../lib/db/client";
 import { migrate } from "../lib/db/migrate";
-import { seed } from "../lib/db/seed";
+import { seedWithResult } from "../lib/db/seed";
 
 async function main() {
   loadEnvConfig(process.cwd());
@@ -9,8 +9,9 @@ async function main() {
     const action = process.argv[2];
     if (action === "migrate") console.log(`PASS: Schema ${await migrate()}.`);
     else if (action === "seed") {
-      const folders = await seed();
-      console.log(`PASS: Seed folders present: ${folders.map((folder) => folder.name).join(", ")}.`);
+      const { folders, skipped } = await seedWithResult();
+      console.log(skipped ? `PASS: Vault already has ${folders.length} folders; seed skipped.`
+        : `PASS: Seed folders present: ${folders.map((folder) => folder.name).join(", ")}.`);
     } else throw new Error("Expected migrate or seed.");
   } catch (error) {
     // Avoid logging provider errors, which can include credentials or row contents.

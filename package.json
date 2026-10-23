@@ -18,6 +18,8 @@
     "seed:check": "tsx scripts/seed-check.ts",
     "db:seed": "tsx scripts/db-setup.ts seed",
     "folders:describe": "tsx scripts/folders-describe.ts",
+    "folders:check": "tsx scripts/folders-check.ts",
+    "vault:counts": "tsx scripts/vault-counts.ts",
     "smoke": "tsx scripts/smoke.ts",
     "smoke:capture": "tsx scripts/smoke-capture.ts",
     "split:preview": "tsx scripts/split-preview.ts",
